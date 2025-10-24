@@ -42,43 +42,52 @@
     </header>
 
     <main>
-      <!-- BERANDA -->
+      <!-- BERANDA (updated hero + feature cards) -->
       <section id="beranda-page" class="page card mb-6 hidden">
-        <div class="text-center py-8">
-          <h2 class="text-4xl font-extrabold text-purple-700 mb-2">Selamat Datang di <span class="text-yellow-400">PhySphere</span></h2>
-          <p class="text-lg text-purple-900 mb-6">Pelajari Fisika dengan cara yang menyenangkan dan interaktif ✨</p>
-          <div class="grid md:grid-cols-2 gap-8 justify-center mb-10">
-            <div class="bg-white rounded-2xl shadow p-6 flex flex-col items-center">
-              <img src="https://img.icons8.com/color/96/000000/books.png" alt="Materi" class="mb-4"/>
-              <h3 class="font-bold text-xl text-purple-700 mb-2">Materi Pembelajaran</h3>
-              <p class="text-slate-600 text-center">Pelajari konsep dasar fisika seperti GHS, Hukum Newton, dan lainnya secara interaktif 📚</p>
+  <div class="rounded-2xl overflow-hidden text-white p-8 shadow-lg" style="background: radial-gradient(circle at 10% 20%, rgba(124,58,237,0.95) 0%, rgba(124,58,237,0.85) 35%, rgba(245,158,11,0.85) 100%);">
+          <div class="md:flex md:items-center md:gap-8">
+            <div class="md:flex-1">
+              <h2 class="text-4xl md:text-5xl font-extrabold leading-tight drop-shadow-lg">Pelajari <span class="underline decoration-yellow-300 decoration-4">Gerak Harmonik</span> dengan PhySphere</h2>
+              <p class="mt-4 text-lg md:text-xl text-purple-50/90">Simulasi interaktif, kuis berbasis tugas, dan materi ringkas untuk membantu kamu menguasai konsep GHS dengan cepat.</p>
+              <div class="mt-6 flex gap-3">
+                <button type="button" onclick="(function(){ const b = document.querySelector('.tab-button[data-page=\'materi\']'); if(b) b.click(); })()" class="vlab-button bg-white text-purple-700 font-semibold px-6 py-2 rounded-lg shadow">Mulai Materi</button>
+                <button type="button" onclick="(function(){ const b = document.querySelector('.tab-button[data-page=\'quiz\']'); if(b) b.click(); })()" class="vlab-button bg-purple-800/90 text-yellow-200 font-semibold px-6 py-2 rounded-lg shadow">Coba Kuis</button>
+              </div>
+              <div class="mt-6 grid grid-cols-3 gap-3 md:gap-4 text-sm text-purple-100">
+                <div class="bg-purple-700/30 rounded-lg p-3">
+                  <div class="font-semibold">Interaktif</div>
+                  <div class="text-xs mt-1">Simulasi real-time & parameter</div>
+                </div>
+                <div class="bg-purple-700/30 rounded-lg p-3">
+                  <div class="font-semibold">Terukur</div>
+                  <div class="text-xs mt-1">Kuis dinilai & riwayat tersimpan</div>
+                </div>
+                <div class="bg-purple-700/30 rounded-lg p-3">
+                  <div class="font-semibold">Ringkas</div>
+                  <div class="text-xs mt-1">Materi singkat & video</div>
+                </div>
+              </div>
             </div>
-            <div class="bg-white rounded-2xl shadow p-6 flex flex-col items-center">
-              <img src="https://img.icons8.com/color/96/000000/quiz.png" alt="Quiz" class="mb-4"/>
-              <h3 class="font-bold text-xl text-purple-700 mb-2">Kuis Interaktif</h3>
-              <p class="text-slate-600 text-center">Uji pemahaman Anda dengan kuis yang menarik dan interaktif ✍️</p>
-            </div>
-          </div>
-          <h3 class="text-2xl font-bold text-purple-700 mb-6">Fitur Unggulan</h3>
-          <div class="grid md:grid-cols-3 gap-8 mb-10">
-            <div class="bg-white rounded-2xl shadow p-6 flex flex-col items-center">
-              <img src="https://img.icons8.com/color/96/000000/particle.png" alt="Simulasi" class="mb-4"/>
-              <h4 class="font-semibold text-lg text-purple-700 mb-2">Simulasi Interaktif</h4>
-              <p class="text-slate-600 text-center">Lihat konsep fisika dalam bentuk animasi yang menarik</p>
-            </div>
-            <div class="bg-white rounded-2xl shadow p-6 flex flex-col items-center">
-              <img src="https://img.icons8.com/color/96/000000/video.png" alt="Video" class="mb-4"/>
-              <h4 class="font-semibold text-lg text-purple-700 mb-2">Video Pembelajaran</h4>
-              <p class="text-slate-600 text-center">Pelajari melalui video penjelasan yang komprehensif</p>
-            </div>
-            <div class="bg-white rounded-2xl shadow p-6 flex flex-col items-center">
-              <img src="https://img.icons8.com/color/96/000000/clock--v1.png" alt="Realtime" class="mb-4"/>
-              <h4 class="font-semibold text-lg text-purple-700 mb-2">Pembaruan Real-time</h4>
-              <p class="text-slate-600 text-center">Selalu terhubung, selalu terkini dengan update real-time</p>
+            <div class="md:w-1/3 mt-6 md:mt-0">
+              <div class="bg-white/20 rounded-xl p-4">
+                <img src="../img/logo%20PhySphere.png" alt="PhySphere" class="mx-auto mb-3 w-32 opacity-95" />
+                <div class="text-center text-sm">Mulai jelajahi modul atau langsung coba kuis untuk menguji pemahamanmu.</div>
+              </div>
             </div>
           </div>
-          <div class="mt-8">
-            <button class="vlab-button bg-purple-700 text-yellow-300 hover:bg-purple-800 px-8 py-3 text-lg font-bold shadow-lg transition">Mulai Belajar Sekarang</button>
+        </div>
+        <div class="mt-6 grid md:grid-cols-3 gap-4">
+          <div class="bg-white rounded-2xl shadow p-6">
+            <h4 class="font-semibold text-slate-800 mb-2">Simulasi Interaktif</h4>
+            <p class="text-slate-600">Sesuaikan parameter dan amati perubahan gerak secara real-time pada lab kami.</p>
+          </div>
+          <div class="bg-white rounded-2xl shadow p-6">
+            <h4 class="font-semibold text-slate-800 mb-2">Kuis dengan Riwayat</h4>
+            <p class="text-slate-600">Uji pemahaman dan lihat riwayat serta nilai terbaikmu di profil.</p>
+          </div>
+          <div class="bg-white rounded-2xl shadow p-6">
+            <h4 class="font-semibold text-slate-800 mb-2">Referensi Ringkas</h4>
+            <p class="text-slate-600">Ringkasan rumus dan konsep yang mudah dibaca untuk tiap topik.</p>
           </div>
         </div>
       </section>
@@ -408,8 +417,6 @@
                 <p class="text-sm text-slate-600">3 soal — 2 menit.</p>
                 <div class="mt-3 flex gap-2">
                   <button data-topic="getaran" class="start-topic vlab-button bg-blue-500 text-white">Mulai</button>
-                  <button data-topic="getaran" class="submit-topic vlab-button bg-indigo-600 text-white">Kirim</button>
-                  <button data-topic="getaran" class="review-topic vlab-button bg-white border">Rangkuman</button>
                   <button data-topic="getaran" class="retry-topic vlab-button bg-white border">Ulangi</button>
                 </div>
                   <div id="result-getaran" class="topic-result">Belum dikerjakan.</div>
@@ -423,8 +430,6 @@
                 <p class="text-sm text-slate-600">3 soal — 2 menit.</p>
                 <div class="mt-3 flex gap-2">
                   <button data-topic="ghs" class="start-topic vlab-button bg-blue-500 text-white">Mulai</button>
-                  <button data-topic="ghs" class="submit-topic vlab-button bg-indigo-600 text-white">Kirim</button>
-                  <button data-topic="ghs" class="review-topic vlab-button bg-white border">Rangkuman</button>
                   <button data-topic="ghs" class="retry-topic vlab-button bg-white border">Ulangi</button>
                 </div>
                   <div id="result-ghs" class="topic-result">Belum dikerjakan.</div>
@@ -438,8 +443,6 @@
                 <p class="text-sm text-slate-600">3 soal — 2 menit.</p>
                 <div class="mt-3 flex gap-2">
                   <button data-topic="bandul" class="start-topic vlab-button bg-blue-500 text-white">Mulai</button>
-                  <button data-topic="bandul" class="submit-topic vlab-button bg-indigo-600 text-white">Kirim</button>
-                  <button data-topic="bandul" class="review-topic vlab-button bg-white border">Rangkuman</button>
                   <button data-topic="bandul" class="retry-topic vlab-button bg-white border">Ulangi</button>
                 </div>
                   <div id="result-bandul" class="topic-result">Belum dikerjakan.</div>
@@ -453,8 +456,6 @@
                 <p class="text-sm text-slate-600">3 soal — 2 menit.</p>
                 <div class="mt-3 flex gap-2">
                   <button data-topic="pegas" class="start-topic vlab-button bg-blue-500 text-white">Mulai</button>
-                  <button data-topic="pegas" class="submit-topic vlab-button bg-indigo-600 text-white">Kirim</button>
-                  <button data-topic="pegas" class="review-topic vlab-button bg-white border">Rangkuman</button>
                   <button data-topic="pegas" class="retry-topic vlab-button bg-white border">Ulangi</button>
                 </div>
                   <div id="result-pegas" class="topic-result">Belum dikerjakan.</div>
@@ -465,25 +466,14 @@
             </div>
           </div>
 
-          <aside class="md:col-span-1">
-            <div class="p-4 bg-white rounded-xl space-y-3">
-              <h4 class="font-semibold text-slate-800">Navigasi Soal</h4>
-              <div id="question-nav" class="grid grid-cols-5 gap-2 mt-2"></div>
-              <div class="mt-3 text-sm text-slate-500">Status Koneksi: <span id="conn-status">Menghubungkan...</span></div>
-            </div>
-
-            <div class="mt-4 p-4 bg-white rounded-xl">
-              <h4 class="font-semibold">Hasil Kuis</h4>
-              <div id="quiz-result-panel" class="mt-2 text-sm text-slate-600">Belum ada hasil.</div>
-            </div>
-          </aside>
+          <!-- Right-hand navigation/result panel removed as requested -->
         </div>
       </section>
 
       <!-- PROFILE simple -->
       <section id="profile-page" class="page hidden card mt-6">
         <h2 class="text-lg font-bold">Profil</h2>
-        <p class="text-sm text-slate-500">Masuk untuk melihat riwayat skor dan pengaturan akun.</p>
+        <p id="profile-hint" class="text-sm text-slate-500">Masuk untuk melihat riwayat skor dan pengaturan akun.</p>
         <div id="profile-content" class="mt-4">
           <div id="not-logged" class="p-4 bg-white rounded-xl border">
             <p class="text-sm text-slate-700 mb-3">Anda belum masuk.</p>
@@ -497,6 +487,15 @@
             <div class="text-sm text-slate-600" id="profile-email">email@example.com</div>
             <div class="mt-4">
               <button id="btn-logout" class="vlab-button bg-red-500 text-white">Logout</button>
+            </div>
+            <!-- Best scores and history placeholders -->
+            <div class="mt-6">
+              <h4 class="font-semibold">Nilai Tertinggi per Kuis</h4>
+              <div id="profile-best-scores" class="mt-2 text-sm text-slate-700">(Belum ada data)</div>
+            </div>
+            <div class="mt-6">
+              <h4 class="font-semibold">Riwayat Percobaan Kuis</h4>
+              <div id="profile-quiz-history" class="mt-2 text-sm text-slate-700">(Belum ada data)</div>
             </div>
           </div>
         </div>

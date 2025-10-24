@@ -39,11 +39,9 @@
   // NOTE: modal handlers are provided by the full script to avoid duplicate/conflicting listeners.
   // (If script-full.js is not loaded we'll still allow manual hide via overlay click.)
 
-    // attach simple quiz button handlers for start/submit/retry/review
-    document.querySelectorAll('.start-topic').forEach(b=> b.addEventListener('click', startTopicHandler));
-    document.querySelectorAll('.submit-topic').forEach(b=> b.addEventListener('click', submitTopicHandler));
-    document.querySelectorAll('.review-topic').forEach(b=> b.addEventListener('click', reviewTopicHandler));
-    document.querySelectorAll('.retry-topic').forEach(b=> b.addEventListener('click', retryTopicHandler));
+  // attach simple quiz button handlers for start and retry (submit & review removed)
+  document.querySelectorAll('.start-topic').forEach(b=> b.addEventListener('click', startTopicHandler));
+  document.querySelectorAll('.retry-topic').forEach(b=> b.addEventListener('click', retryTopicHandler));
 
     // vlab simple controls
     const modePegas = document.getElementById('mode-pegas');
@@ -105,8 +103,7 @@
 
   // Quiz button handlers (lightweight)
   function startTopicHandler(e){ const topic = e.currentTarget.dataset.topic; if(!topic) return; document.querySelector('.tab-button[data-page="quiz"]')?.click(); setTimeout(()=>{ const el = document.getElementById('quiz-' + topic); if(el) el.scrollIntoView({behavior:'smooth'}); },80); }
-  function submitTopicHandler(e){ const topic = e.currentTarget.dataset.topic; if(!topic) return; const res = document.getElementById('result-' + topic); if(res) res.textContent = 'Sudah dikirim. Skor: — (fitur lengkap offline)'; }
-  function reviewTopicHandler(e){ const topic = e.currentTarget.dataset.topic; if(!topic) return; const res = document.getElementById('result-' + topic); if(res) res.textContent = 'Rangkuman: belum tersedia (fitur lengkap di skrip penuh).'; }
+  // submit and review handlers removed; full logic lives in script-full.js
   function retryTopicHandler(e){ const topic = e.currentTarget.dataset.topic; if(!topic) return; const container = document.getElementById('question-container-' + topic); if(container) container.innerHTML = '<div class="p-3 text-sm text-slate-600">Mengulang topik — soal akan disediakan di versi lengkap.</div>'; }
 
 })();

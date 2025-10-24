@@ -298,13 +298,22 @@ function makeQuizController(topic){
         console.error("Error saat mencoba menyimpan riwayat kuis:", e);
     }
         // --- AKHIR BLOK BARU ---
-    const panel = document.getElementById('quiz-result-panel');
-    if(panel) panel.innerHTML = `<div class='font-bold'>Skor Anda: ${res.percent} / 100</div><div class='text-sm mt-1'>(${res.score} benar dari ${res.max} soal)</div>`;
+  const panel = document.getElementById('quiz-result-panel');
+  if(panel) panel.innerHTML = `<div class='font-bold'>Skor Anda: ${res.percent} / 100</div><div class='text-sm mt-1'>(${res.score} benar dari ${res.max} soal)</div>`;
+  // hide per-topic placeholder (if present) since the topic has been attempted
+  try{ const resEl = document.getElementById('result-' + topic); if(resEl) resEl.style.display = 'none'; }catch(e){}
     if(timerEl) timerEl.textContent = `Skor: ${res.percent}/100`;
     persist(); 
     updateGlobalScore();
     const submitBtn = document.querySelector(`.submit-topic[data-topic='${topic}']`);
     if(submitBtn) submitBtn.disabled = true;
+    // disable the Start button for this topic so user can't restart until they press Ulangi
+    try{
+      const startBtn = document.querySelector(`.start-topic[data-topic='${topic}']`);
+      if(startBtn){ startBtn.disabled = true; startBtn.classList.add('opacity-50'); }
+      const retryBtn = document.querySelector(`.retry-topic[data-topic='${topic}']`);
+      if(retryBtn){ retryBtn.disabled = false; retryBtn.style.opacity = ''; }
+    }catch(e){/* ignore */}
     try{ sessionStorage.setItem('pysphere_quiz_finished_'+topic, '1'); }catch(e){}
     try{ if(window.updateTopicUI) window.updateTopicUI(topic); }catch(e){}
     try{ if(window.renderCompletedResults) window.renderCompletedResults(); }catch(e){}
@@ -325,6 +334,13 @@ function makeQuizController(topic){
     renderQuestion(); 
     updateGlobalScore(); 
     try{ if(window.updateTopicUI) window.updateTopicUI(topic); }catch(e){} 
+    // re-enable start button and reset result placeholder
+    try{
+      const startBtn = document.querySelector(`.start-topic[data-topic='${topic}']`);
+      if(startBtn){ startBtn.disabled = false; startBtn.classList.remove('opacity-50'); }
+      const resEl = document.getElementById('result-' + topic);
+      if(resEl){ resEl.style.display = ''; resEl.textContent = 'Belum dikerjakan.'; }
+    }catch(e){ }
   }
 
   loadPersist();
@@ -339,7 +355,7 @@ TOPICS.forEach(t=>{
     CONTROLLERS[t].start();
     try{ location.hash = `take-${t}`; window.scrollTo(0,0); }catch(e){}
   }));
-  document.querySelectorAll(`button.review-topic[data-topic='${t}']`).forEach(b=> b.addEventListener('click', ()=> CONTROLLERS[t].review()));
+  // review-topic removed from UI; no binding
   document.querySelectorAll(`button.retry-topic[data-topic='${t}']`).forEach(b=> b.addEventListener('click', ()=> CONTROLLERS[t].retry()));
   CONTROLLERS[t].renderNav();
 });
@@ -904,11 +920,113 @@ setTimeout(()=>{
 
       el('profile-name').textContent = displayName;
       el('profile-email').textContent = user.email || '';
+      // hide the hint text when logged in
+      const hint = el('profile-hint'); if(hint) hint.style.display = 'none';
+
+      // fetch quiz history and best scores
+      try{
+        const [{ data: history, error: hErr }, { data: bests, error: bErr }] = await Promise.all([
+          supabase.from('quiz_history').select('id, quiz_key, quiz_name, score, max_score, percentage, passed, created_at').eq('user_id', user.id).order('created_at', {ascending:false}).limit(200),
+          supabase.from('user_best_scores').select('quiz_key, best_score, best_max_score, best_percentage, achieved_at').eq('user_id', user.id)
+        ]);
+
+        if(hErr) console.error('history fetch error', hErr);
+        if(bErr) console.error('bests fetch error', bErr);
+
+        // If user_best_scores is empty but we have history, compute bests from history as fallback
+        let computedBests = [];
+        if((!bests || bests.length === 0) && history && history.length){
+          const map = {};
+          history.forEach(h => {
+            const key = h.quiz_key || 'unknown';
+            const pct = (h.percentage != null) ? Number(h.percentage) : (h.score != null ? Number(h.score) : 0);
+            if(!map[key] || pct > map[key].best_percentage){
+              map[key] = {
+                quiz_key: key,
+                best_score: h.score,
+                best_max_score: h.max_score,
+                best_percentage: pct,
+                achieved_at: h.created_at
+              };
+            }
+          });
+          computedBests = Object.keys(map).map(k => map[k]);
+        }
+
+        const bestEl = el('profile-best-scores');
+        const bestSource = (bests && bests.length) ? bests : computedBests;
+        if(bestEl){
+          if(bestSource && bestSource.length){
+            // render as responsive card grid
+            let html = '<div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">';
+            bestSource.forEach(b=>{
+              const quizLabel = escapeHtml(String(b.quiz_key || b.quiz_name || 'Kuis'));
+              const pct = (b.best_percentage != null) ? Number(b.best_percentage) : (b.best_score!=null && b.best_max_score? Math.round(100*(b.best_score/b.best_max_score)): null);
+              const dateLabel = b.achieved_at ? new Date(b.achieved_at).toLocaleString() : '';
+              const scoreLabel = (b.best_score!=null ? `${b.best_score}` : '-') + (b.best_max_score? ` / ${b.best_max_score}` : '');
+              html += `
+                <div class="bg-white rounded-xl shadow p-4 flex items-center gap-4">
+                  <div class="w-12 h-12 rounded-full bg-gradient-to-tr from-purple-600 to-pink-500 flex items-center justify-center text-white font-bold text-lg">${(pct!=null?Math.round(pct):'--')}</div>
+                  <div class="flex-1">
+                    <div class="font-semibold text-slate-800">${quizLabel}</div>
+                    <div class="text-xs text-slate-500 mt-1">Skor: <span class="font-medium text-slate-700">${scoreLabel}</span> • <span class="text-slate-500">${dateLabel}</span></div>
+                  </div>
+                  <div class="text-sm text-slate-600 text-right">
+                    ${pct!=null?('<div class="font-semibold text-lg text-slate-800">'+Math.round(pct)+'%</div>'):'<div class="text-slate-400">-</div>'}
+                  </div>
+                </div>`;
+            });
+            html += '</div>';
+            bestEl.innerHTML = html;
+          } else {
+            bestEl.innerHTML = '<div class="text-sm text-slate-500">Belum ada nilai tertinggi.</div>';
+          }
+        }
+
+        // render history (most recent first)
+        const histEl = el('profile-quiz-history');
+        if(histEl){
+          if(history && history.length){
+            let html = '<div class="space-y-2">';
+            history.forEach(h=>{
+              html += `<div class="p-2 bg-gray-50 rounded-md border"><div class="font-semibold">${escapeHtml(h.quiz_name||h.quiz_key||'Kuis')}</div><div class="text-xs text-slate-600">Skor: ${h.score!=null?h.score:''}${h.max_score?('/'+h.max_score):''} — ${h.percentage!=null?h.percentage+'%':''} — ${h.passed? 'Lulus' : 'Gagal'} — ${new Date(h.created_at).toLocaleString()}</div></div>`;
+            });
+            html += '</div>';
+            histEl.innerHTML = html;
+          } else {
+            histEl.innerHTML = '<div class="text-sm text-slate-500">Belum ada riwayat percobaan.</div>';
+          }
+        }
+
+        // Update quiz panels: hide "Belum dikerjakan." when user has attempted that topic
+        const TOPICS = ['getaran','ghs','bandul','pegas'];
+        TOPICS.forEach(topic => {
+          try{
+            const resEl = el('result-' + topic);
+            const hasAttempt = history && history.some(h => (h.quiz_key||'').toLowerCase() === topic.toLowerCase());
+            if(resEl){
+              if(hasAttempt){
+                // hide the placeholder text
+                resEl.style.display = 'none';
+              } else {
+                resEl.style.display = '';
+                resEl.textContent = 'Belum dikerjakan.';
+              }
+            }
+          }catch(e){/* ignore per-topic errors */}
+        });
+
+      }catch(e){
+        console.error('Error loading profile quiz data', e);
+      }
     } else {
       el('not-logged').classList.remove('hidden');
       el('logged-in').classList.add('hidden');
     }
   }
+
+  // small helper to escape text for insertion into HTML
+  function escapeHtml(s){ if(!s && s!==0) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
 
   // open pages from profile
   if(openLogin) openLogin.addEventListener('click', ()=>{ document.querySelectorAll('.page').forEach(p=>p.classList.add('hidden')); el('login-page').classList.remove('hidden'); });
