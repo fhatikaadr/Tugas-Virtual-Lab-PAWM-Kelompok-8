@@ -248,7 +248,7 @@ function makeQuizController(topic){
     try{ const reviewBtn = document.querySelector(`.review-topic[data-topic='${topic}']`); if(reviewBtn){ reviewBtn.disabled = true; reviewBtn.style.opacity = '0.6'; } }catch(e){}
   }
 
-  function finish(){ 
+  async function finish(){ 
     try{ persist(); }catch(e){}
     if(timerId) clearInterval(timerId); 
     running=false;
@@ -268,6 +268,36 @@ function makeQuizController(topic){
       items.forEach(it=>{ it.draggable = false; it.style.cursor = 'default'; });
     });
     const res = computeScore();
+            // --- TAMBAHKAN BLOK BARU INI ---
+    try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+            const historyData = {
+            user_id: user.id,
+            quiz_key: topic, // 'topic' sudah ada di scope fungsi ini
+            quiz_name: `Kuis ${topic.toUpperCase()}`,
+            score: res.score,    // Jumlah jawaban benar
+            max_score: res.max,  // Jumlah soal
+            percentage: res.percent, // Persentase
+            passed: res.percent >= 75, // (Asumsi KKM 75, bisa diubah)
+            metadata: answersLocal // Menyimpan riwayat jawaban pengguna
+            };
+
+            // Kirim (insert) data ke tabel quiz_history
+            const { error } = await supabase
+            .from('quiz_history')
+            .insert(historyData);
+
+            if (error) {
+            console.error("Gagal menyimpan riwayat kuis:", error.message);
+            } else {
+            console.log("Riwayat kuis berhasil disimpan!");
+            }
+        }
+        } catch (e) {
+        console.error("Error saat mencoba menyimpan riwayat kuis:", e);
+    }
+        // --- AKHIR BLOK BARU ---
     const panel = document.getElementById('quiz-result-panel');
     if(panel) panel.innerHTML = `<div class='font-bold'>Skor Anda: ${res.percent} / 100</div><div class='text-sm mt-1'>(${res.score} benar dari ${res.max} soal)</div>`;
     if(timerEl) timerEl.textContent = `Skor: ${res.percent}/100`;
@@ -344,32 +374,81 @@ function updateGlobalScore(){
   document.getElementById('live-score').textContent = `${total} / ${maxTotal}`; 
 }
 
-window.renderCompletedResults = function(){
+// --- ...DENGAN FUNGSI BARU (ASYNC) INI ---
+window.renderCompletedResults = async function(){
   try{
     const panel = document.getElementById('quiz-result-panel');
     if(!panel) return;
+    
+    // Ambil data skor dari database
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { data: profileData, error } = await supabase
+      .from('profile')
+      .select('quiz_scores')
+      .eq('id', user.id)
+      .single();
+
+    if (error || !profileData || !profileData.quiz_scores) {
+      panel.innerHTML = '<div class="text-sm text-slate-600">Belum ada hasil kuis.</div>';
+      return;
+    }
+
+    const scores = profileData.quiz_scores;
     let html = '<div class="text-sm font-semibold mb-2">Hasil Kuis:</div>';
-    TOPICS.forEach(t=>{
-      const finished = sessionStorage.getItem('pysphere_quiz_finished_'+t);
-      if(finished === '1'){
-        const res = CONTROLLERS[t].computeScore();
-        html += `<div class="topic-result quiz-completed mb-2"><span class="completed-badge">Selesai</span> ${t.toUpperCase()}: ${res.percent}%</div>`;
+    let hasScores = false;
+
+    // Tampilkan skor dari database
+    TOPICS.forEach(t => {
+      if (scores[t] !== null && scores[t] !== undefined) {
+        html += `<div class="topic-result quiz-completed mb-2"><span class="completed-badge">Selesai</span> ${t.toUpperCase()}: ${scores[t]}%</div>`;
+        hasScores = true;
       }
     });
+
+    if (!hasScores) {
+      html += '<div class="text-sm text-slate-600">Belum ada hasil kuis.</div>';
+    }
+    
     panel.innerHTML = html;
   }catch(e){ console.warn('renderCompletedResults failed', e); }
 };
 
 setTimeout(()=>{ try{ window.renderCompletedResults(); }catch(e){} }, 300);
 
-window.updateTopicUI = function(topic){
+// --- ...DENGAN FUNGSI BARU (ASYNC) INI ---
+window.updateTopicUI = async function(topic){
   try{
-    const finished = sessionStorage.getItem('pysphere_quiz_finished_'+topic);
     const resultEl = document.getElementById('result-'+topic);
-    if(finished === '1' && resultEl){
-      const res = CONTROLLERS[topic].computeScore();
-      resultEl.innerHTML = `<span class="completed-badge">Selesai</span> Skor: ${res.percent}% (${res.score}/${res.max})`;
+    if (!resultEl) return;
+
+    // Ambil data skor dari database
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { data: profileData, error } = await supabase
+      .from('profile')
+      .select('quiz_scores')
+      .eq('id', user.id)
+      .single();
+
+    if (error || !profileData || !profileData.quiz_scores) {
+      resultEl.innerHTML = 'Belum dikerjakan.';
+      resultEl.classList.remove('quiz-completed');
+      return;
+    }
+
+    const scores = profileData.quiz_scores;
+    
+    // Cek apakah topik ini ada di skor database
+    if (scores[topic] !== null && scores[topic] !== undefined) {
+      // Kita tidak tahu lagi skor mentah (3/3), jadi kita tampilkan persentasenya saja
+      resultEl.innerHTML = `<span class="completed-badge">Selesai</span> Skor: ${scores[topic]}%`;
       resultEl.classList.add('quiz-completed');
+    } else {
+      resultEl.innerHTML = 'Belum dikerjakan.';
+      resultEl.classList.remove('quiz-completed');
     }
   }catch(e){ console.warn('updateTopicUI failed', e); }
 };
