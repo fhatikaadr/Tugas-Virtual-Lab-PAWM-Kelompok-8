@@ -1,0 +1,25 @@
+// Backup of corrupted script.js (contains truncation marker)
+// This file was created automatically before attempting recovery.
+
+// --- NAVIGATION ---
+document.querySelectorAll('.tab-button').forEach(btn=>btn.addEventListener('click',()=>{
+  document.querySelectorAll('.page').forEach(p=>p.classList.add('hidden'));
+  document.getElementById(btn.dataset.page+'-page').classList.remove('hidden');
+  document.querySelectorAll('.tab-button').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  // if vlab tab opened, ensure canvas resizes & redraws after layout
+  if(btn.dataset.page === 'vlab'){
+    setTimeout(()=>{ try{ if(window.vlabRefresh) window.vlabRefresh({autoplay:true}); }catch(e){} },120);
+  }
+  // persist active page to session storage
+  try{ sessionStorage.setItem('pysphere_active_page', btn.dataset.page); }catch(e){}
+}));
+
+// --- Quiz Data: separate QUIZZES per topic ---
+function shuffleArray(arr){return arr.slice().sort(()=>Math.random()-0.5)}
+
+const QUIZZES = {
+  /* truncated backup of corrupted file; original content incomplete */
+};
+
+// Corrupted file ended unexpectedly during a template literal. Preserve original for review.
