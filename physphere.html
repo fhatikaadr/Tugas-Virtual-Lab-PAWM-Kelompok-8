@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Virtual Lab Fisika: Gerak Harmonik Sederhana</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="styles.css"> <!-- Path disesuaikan untuk folder "source" -->
+</head>
+<body class="min-h-screen">
+    <div id="app" class="flex flex-col h-screen">
+        <header class="bg-white shadow-lg sticky top-0 z-10">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+                <h1 class="text-3xl font-extrabold text-gray-900 flex items-center">
+                    <svg class="w-8 h-8 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    Fisika V-Lab: GHS
+                </h1>
+            </div>
+            <nav class="bg-gray-50 border-t border-gray-200">
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex space-x-4">
+                    <button class="tab-button py-3 px-4 text-gray-600 active" data-page="materi">📚 Materi Belajar</button>
+                    <button class="tab-button py-3 px-4 text-gray-600" data-page="vlab">🔬 Virtual Lab</button>
+                    <button class="tab-button py-3 px-4 text-gray-600" data-page="quiz">📝 Kuis Interaktif</button>
+                    <button class="tab-button py-3 px-4 text-gray-600" data-page="profile">👤 Profil & Skor</button>
+                </div>
+            </nav>
+        </header>
+        <main class="flex-grow p-4 overflow-y-auto">
+            <div id="materi-page" class="page max-w-4xl mx-auto">
+                <h2 class="text-2xl font-bold mb-4 text-gray-800">📚 Materi Belajar: Gerak Harmonik Sederhana</h2>
+                <div class="bg-white p-6 rounded-xl shadow-lg space-y-6">
+                    <h3 class="text-xl font-semibold text-blue-700">Progress Membaca: <span id="materi-progress-percent">0%</span></h3>
+                    <div class="progress-bar mb-6">
+                        <div id="materi-progress-fill" class="progress-fill" style="width: 0%;"></div>
+                    </div>
+                    <div class="border border-gray-200 rounded-xl">
+                        <h4 class="text-xl font-bold text-gray-800 p-4 bg-gray-50 cursor-pointer flex justify-between items-center module-header" data-target="pegas-modul">
+                            Modul 1: Osilasi Pegas
+                            <svg class="w-5 h-5 text-blue-600 transform transition-transform" id="icon-pegas-modul" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </h4>
+                        <div id="pegas-modul" class="module-content">
+                            <div class="p-4 space-y-4">
+                                <div class="p-3 border rounded-lg bg-gray-50">
+                                    <h5 class="font-semibold mb-2">1.1 Definisi dan Hukum Hooke</h5>
+                                    <textarea id="materi-pegas-1" rows="5" class="w-full p-2 border rounded-lg text-sm bg-white" data-module="pegas-1">
+Gerak Harmonik Sederhana (GHS) pada pegas didefinisikan sebagai gerak osilasi di mana gaya pemulih ($F$) berbanding lurus dengan simpangan ($x$).
+
+Hukum Hooke: Gaya pemulih selalu bekerja menuju titik setimbang.
+$$F = -kx$$
+Di mana $k$ adalah konstanta pegas dan tanda minus menunjukkan arah gaya berlawanan dengan simpangan.
+                                    </textarea>
+                                    <div class="flex justify-end items-center mt-2">
+                                        <button class="materi-read-btn vlab-button px-3 py-1 text-sm bg-blue-500 text-white hover:bg-blue-600" data-module="pegas-1">Tandai Dibaca</button>
+                                        <span id="status-pegas-1" class="text-xs ml-3 text-red-500">Belum</span>
+                                    </div>
+                                </div>
+                                <div class="p-3 border rounded-lg bg-gray-50">
+                                    <h5 class="font-semibold mb-2">1.2 Periode dan Frekuensi</h5>
+                                    <textarea id="materi-pegas-2" rows="5" class="w-full p-2 border rounded-lg text-sm bg-white" data-module="pegas-2">
+Periode ($T$) dan Frekuensi Sudut ($\omega$) pada pegas tergantung pada inersia sistem (massa, $m$) dan kekakuan ($k$).
+
+Frekuensi Sudut:
+$$\omega = \sqrt{\frac{k}{m}}$$ (Rad/s)
+
+Periode:
+$$T = 2\pi\sqrt{\frac{m}{k}}$$ (Detik)
+
+Amplitudo ($A$) tidak memengaruhi $T$ dan $\omega$.
+                                    </textarea>
+                                    <div class="flex justify-end items-center mt-2">
+                                        <button class="materi-read-btn vlab-button px-3 py-1 text-sm bg-blue-500 text-white hover:bg-blue-600" data-module="pegas-2">Tandai Dibaca</button>
+                                        <span id="status-pegas-2" class="text-xs ml-3 text-red-500">Belum</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="border border-gray-200 rounded-xl">
+                        <h4 class="text-xl font-bold text-gray-800 p-4 bg-gray-50 cursor-pointer flex justify-between items-center module-header" data-target="bandul-modul">
+                            Modul 2: Bandul Matematis
+                            <svg class="w-5 h-5 text-blue-600 transform transition-transform" id="icon-bandul-modul" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </h4>
+                        <div id="bandul-modul" class="module-content">
+                            <div class="p-4 space-y-4">
+                                <div class="p-3 border rounded-lg bg-gray-50">
+                                    <h5 class="font-semibold mb-2">2.1 Gaya Pemulih dan Linearitas</h5>
+                                    <textarea id="materi-bandul-1" rows="5" class="w-full p-2 border rounded-lg text-sm bg-white" data-module="bandul-1">
+Gaya pemulih pada bandul adalah komponen tangensial dari gaya berat. Agar dianggap GHS, sudut simpangan ($\theta$) harus kecil (sin($\theta$) $\approx \theta$).
+
+Hukum II Newton untuk Rotasi:
+$$\tau = I \alpha$$
+Gaya Pemulih Torsi:
+$$\tau = - (mg\sin\theta)L$$
+                                    </textarea>
+                                    <div class="flex justify-end items-center mt-2">
+                                        <button class="materi-read-btn vlab-button px-3 py-1 text-sm bg-blue-500 text-white hover:bg-blue-600" data-module="bandul-1">Tandai Dibaca</button>
+                                        <span id="status-bandul-1" class="text-xs ml-3 text-red-500">Belum</span>
+                                    </div>
+                                </div>
+                                <div class="p-3 border rounded-lg bg-gray-50">
+                                    <h5 class="font-semibold mb-2">2.2 Periode Bandul</h5>
+                                    <textarea id="materi-bandul-2" rows="5" class="w-full p-2 border rounded-lg text-sm bg-white" data-module="bandul-2">
+Periode Bandul Matematis hanya dipengaruhi oleh Panjang Tali ($L$) dan Percepatan Gravitasi ($g$).
+
+Frekuensi Sudut:
+$$\omega = \sqrt{\frac{g}{L}}$$ (Rad/s)
+
+Periode:
+$$T = 2\pi\sqrt{\frac{L}{g}}$$ (Detik)
+
+Massa Bandul dan Amplitudo kecil tidak memengaruhi Periode.
+                                    </textarea>
+                                    <div class="flex justify-end items-center mt-2">
+                                        <button class="materi-read-btn vlab-button px-3 py-1 text-sm bg-blue-500 text-white hover:bg-blue-600" data-module="bandul-2">Tandai Dibaca</button>
+                                        <span id="status-bandul-2" class="text-xs ml-3 text-red-500">Belum</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="vlab-page" class="page hidden max-w-7xl mx-auto">
+                <h2 class="text-2xl font-bold mb-4 text-gray-800">Simulasi Gerak Harmonik Sederhana (GHS)</h2>
+                <div class="grid md:grid-cols-3 gap-6">
+                    <div class="md:col-span-1 bg-white p-6 rounded-xl shadow-lg h-full">
+                        <h3 class="text-xl font-semibold mb-4 text-blue-700">Kontrol Simulasi</h3>
+                        <div class="flex space-x-2 mb-6">
+                            <button id="mode-pegas" class="vlab-button px-4 py-2 bg-blue-500 text-white hover:bg-blue-600">Pegas</button>
+                            <button id="mode-bandul" class="vlab-button px-4 py-2 bg-gray-200 text-gray-700 hover:bg-gray-300">Bandul</button>
+                        </div>
+                        <button id="start-btn" class="w-full vlab-button bg-green-500 text-white hover:bg-green-600 mb-2">Mulai Simulasi</button>
+                        <button id="skip-btn" class="w-full vlab-button bg-yellow-500 text-gray-900 hover:bg-yellow-600 mb-2">Lewati & Lihat Hasil</button>
+                        <button id="reset-btn" class="w-full vlab-button bg-red-500 text-white hover:bg-red-600 mb-6">Reset</button>
+                        <div id="pegas-controls">
+                            <label class="block text-sm font-medium text-gray-700">Massa (m): <span id="m-val">1.00</span> kg</label>
+                            <input type="range" id="mass-slider" min="0.1" max="5" value="1" step="0.1" class="mb-4">
+                            <label class="block text-sm font-medium text-gray-700">Konstanta Pegas (k): <span id="k-val">10.00</span> N/m</label>
+                            <input type="range" id="k-slider" min="1" max="50" value="10" step="1" class="mb-4">
+                            <label class="block text-sm font-medium text-gray-700">Amplitudo Awal (A): <span id="a-val">0.50</span> meter</label>
+                            <input type="range" id="amp-slider" min="0.1" max="1.5" value="0.5" step="0.05" class="mb-4">
+                        </div>
+                        <div id="bandul-controls" class="hidden">
+                            <label class="block text-sm font-medium text-gray-700">Panjang Tali (L): <span id="l-val">1.00</span> meter</label>
+                            <input type="range" id="length-slider" min="0.1" max="3" value="1" step="0.1" class="mb-4">
+                            <label class="block text-sm font-medium text-gray-700">Sudut Awal (θ₀): <span id="theta-val">30.00</span> °</label>
+                            <input type="range" id="theta-slider" min="5" max="90" value="30" step="5" class="mb-4">
+                            <label class="block text-sm font-medium text-gray-700">Gravitasi (g): <span id="g-val">9.81</span> m/s²</label>
+                            <input type="range" id="g-slider" min="1" max="25" value="9.81" step="0.01" class="mb-4">
+                        </div>
+                        <div class="mt-6 p-4 bg-gray-100 rounded-lg">
+                            <p class="text-sm font-bold text-gray-800">Periode (T): <span id="period-output" class="font-normal text-blue-600">--</span> s</p>
+                            <p class="text-sm font-bold text-gray-800">Frekuensi Sudut (ω): <span id="omega-output" class="font-normal text-blue-600">--</span> rad/s</p>
+                        </div>
+                        <div class="mt-6 p-4 bg-white border border-gray-300 rounded-lg shadow-inner">
+                            <h4 class="text-md font-bold mb-2 text-blue-700">Data Real-time</h4>
+                            <p class="text-xs font-medium text-gray-700">Posisi (<span id="pos-unit">y</span>): <span id="pos-output" class="font-normal text-gray-800">--</span></p>
+                            <p class="text-xs font-medium text-gray-700">Kecepatan (<span id="vel-unit">v</span>): <span id="vel-output" class="font-normal text-gray-800">--</span></p>
+                            <p class="text-xs font-medium text-gray-700">Percepatan (<span id="acc-unit">a</span>): <span id="acc-output" class="font-normal text-gray-800">--</span></p>
+                            <p class="text-xs font-medium text-gray-700">Energi Potensial (EP): <span id="ep-output" class="font-normal text-gray-800">--</span> J</p>
+                            <p class="text-xs font-medium text-gray-700">Energi Kinetik (EK): <span id="ek-output" class="font-normal text-gray-800">--</span> J</p>
+                            <p class="text-xs font-bold text-gray-900 border-t mt-1 pt-1">Energi Total (ET): <span id="et-output" class="font-extrabold text-blue-700">--</span> J</p>
+                        </div>
+                    </div>
+                    <div class="md:col-span-2 bg-white p-4 rounded-xl shadow-lg">
+                        <div class="canvas-container bg-gray-800">
+                            <canvas id="physicsCanvas"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="quiz-page" class="page hidden max-w-4xl mx-auto">
+                <h2 class="text-2xl font-bold mb-4 text-gray-800">Kuis Interaktif GHS</h2>
+                <div class="bg-white p-6 rounded-xl shadow-lg">
+                    <p class="mb-4 text-gray-600">Pilih tes yang ingin Anda ikuti:</p>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+                        <button class="quiz-select-btn vlab-button bg-blue-500 text-white hover:bg-blue-600" data-test="pegas">Tes Pegas</button>
+                        <button class="quiz-select-btn vlab-button bg-blue-500 text-white hover:bg-blue-600" data-test="bandul">Tes Bandul</button>
+                        <button class="quiz-select-btn vlab-button bg-purple-500 text-white hover:bg-purple-600" data-test="final">Tes Akhir (GHS)</button>
+                    </div>
+                    <div id="quiz-area" class="border-t pt-4">
+                        <p class="text-gray-500 text-center">Silakan pilih tes untuk memulai.</p>
+                    </div>
+                    <div id="quiz-results" class="hidden mt-4 p-4 bg-green-100 border border-green-400 text-green-700 rounded-lg">
+                        <h4 class="font-bold">Hasil Tes Anda:</h4>
+                        <p id="quiz-score"></p>
+                    </div>
+                </div>
+            </div>
+            <div id="profile-page" class="page hidden max-w-3xl mx-auto">
+                <h2 class="text-2xl font-bold mb-4 text-gray-800">Profil Pengguna & Progres</h2>
+                <div class="bg-white p-6 rounded-xl shadow-lg">
+                    <div class="flex items-center space-x-6 mb-6 pb-6 border-b">
+                        <img id="profile-picture" src="https://placehold.co/100x100/3b82f6/ffffff?text=User" alt="Foto Profil" class="w-20 h-20 rounded-full border-4 border-blue-200">
+                        <div>
+                            <p class="text-2xl font-bold text-gray-900" id="display-fullname">Pengguna Baru</p>
+                            <p class="text-base text-blue-600" id="display-username">@Anonim</p>
+                        </div>
+                    </div>
+                    <div class="mb-6">
+                        <p class="text-lg font-medium text-gray-700">ID Pengguna (Penting untuk kolaborasi):</p>
+                        <p id="profile-user-id" class="text-sm font-mono p-2 bg-gray-100 rounded-lg break-all text-gray-900">Memuat...</p>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-3 text-blue-700">Summary Skor Tertinggi</h3>
+                    <div id="score-display" class="space-y-3 p-4 border border-gray-200 rounded-xl mb-6">
+                        <p>Mengambil data skor...</p>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-3 text-blue-700">History Log Tes</h3>
+                    <div id="history-log" class="space-y-2 max-h-80 overflow-y-auto p-4 border border-gray-200 rounded-xl bg-gray-50">
+                        <p class="text-gray-500">Memuat riwayat tes...</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    <div id="custom-modal" class="modal hidden fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50">
+        <div class="bg-white p-6 rounded-xl shadow-2xl w-full max-w-sm transform scale-100 transition-transform duration-300">
+            <h4 id="modal-title" class="text-xl font-bold mb-3 text-red-600">Peringatan!</h4>
+            <p id="modal-message" class="text-gray-700 mb-6">Pesan peringatan.</p>
+            <div class="flex justify-end space-x-3">
+                <button id="modal-cancel-btn" class="vlab-button px-4 py-2 bg-gray-300 text-gray-800 hover:bg-gray-400 hidden">Batal</button>
+                <button id="modal-ok-btn" class="vlab-button px-4 py-2 bg-blue-500 text-white hover:bg-blue-600">OK</button>
+            </div>
+        </div>
+    </div>
+    <script type="module" src="script.js"> </script> <!-- Path disesuaikan untuk folder "source" -->
+</body>
+</html>
