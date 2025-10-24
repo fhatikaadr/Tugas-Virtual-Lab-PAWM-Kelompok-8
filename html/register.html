@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>PhySphere — Register</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body class="min-h-screen flex items-center justify-center bg-gradient-to-b from-purple-50 to-yellow-50">
+  <div class="max-w-md w-full p-6">
+    <div class="card">
+      <h2 class="text-xl font-bold text-purple-800 mb-3">Daftar Akun PhySphere</h2>
+
+      <label class="block text-sm text-slate-600">Nama</label>
+      <input id="reg-name" type="text" class="mt-2 px-3 py-2 border rounded w-full" placeholder="Nama lengkap">
+
+      <label class="block text-sm text-slate-600 mt-3">Email</label>
+      <input id="reg-email" type="email" class="mt-2 px-3 py-2 border rounded w-full" placeholder="you@example.com">
+
+      <label class="block text-sm text-slate-600 mt-3">Password</label>
+      <input id="reg-password" type="password" class="mt-2 px-3 py-2 border rounded w-full" placeholder="••••••">
+
+      <div class="mt-4 flex gap-2">
+        <button id="reg-submit" class="vlab-button bg-green-600 text-white">Daftar</button>
+        <a href="index.html" class="vlab-button bg-white border">Kembali</a>
+      </div>
+
+      <div id="reg-msg" class="text-sm text-red-500 mt-3"></div>
+      <hr class="my-4">
+      <div class="text-sm text-slate-600">Sudah punya akun? <a href="login.html" class="text-blue-600 font-semibold">Masuk</a></div>
+    </div>
+  </div>
+
+  <script>
+    (function(){
+      function el(id){return document.getElementById(id)}
+      // if already logged in, redirect to main
+      const current = localStorage.getItem('pysphere_user_current');
+      if(current){ window.location.href = 'PhySphere.html'; }
+
+      el('reg-submit').addEventListener('click', function(){
+        const name = (el('reg-name').value||'').trim();
+        const email = (el('reg-email').value||'').trim().toLowerCase();
+        const pass = el('reg-password').value||'';
+        const msg = el('reg-msg'); msg.textContent = '';
+        if(!email || !pass){ msg.textContent = 'Email dan password wajib diisi.'; return; }
+        const users = JSON.parse(localStorage.getItem('pysphere_users')||'{}');
+        if(users[email]){ msg.textContent = 'Email sudah terdaftar.'; return; }
+        users[email] = { name: name || email, email, password: pass };
+        localStorage.setItem('pysphere_users', JSON.stringify(users));
+        // auto-login and redirect
+        localStorage.setItem('pysphere_user_current', JSON.stringify(users[email]));
+        window.location.href = 'PhySphere.html';
+      });
+    })();
+  </script>
+</body>
+</html>

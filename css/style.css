@@ -7,6 +7,10 @@ body{font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",
 .tab-button.active{border-bottom:3px solid var(--purple-500);color:var(--purple-600);background:var(--yellow-300);}
 input[type=range]{-webkit-appearance:none;appearance:none;height:8px;border-radius:999px;background:#e6eefc}
 input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:var(--blue-500);box-shadow:0 4px 12px rgba(59,130,246,0.25)}
+/* white thumb for better contrast */
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:#fff;border:2px solid rgba(0,0,0,0.08);box-shadow:0 6px 14px rgba(2,6,23,0.08)}
+input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:#fff;border:2px solid rgba(0,0,0,0.08);box-shadow:0 6px 14px rgba(2,6,23,0.08)}
+input[type=range]:focus{outline:none}
 /* quiz specific */
 .question-card{transition:transform .22s ease, box-shadow .22s ease}
 .question-card:hover{transform:translateY(-4px);box-shadow:0 14px 40px rgba(2,6,23,0.08)}

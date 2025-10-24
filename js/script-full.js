@@ -1,13 +1,31 @@
 // PhySphere - Full Script (extracted and adapted from original)
 // --- NAVIGATION ---
 document.querySelectorAll('.tab-button').forEach(btn=>btn.addEventListener('click',()=>{
+  // If user tries to open the VLab, block access until materi progress reaches 100%
+  if(btn.dataset.page === 'vlab'){
+    try{
+      const pctEl = document.getElementById('materi-progress-percent');
+      const pct = pctEl ? parseInt((pctEl.textContent||'0').replace('%',''),10) : 0;
+      if(isNaN(pct) || pct < 100){
+        // show a simple modal warning
+        const modal = document.getElementById('modal');
+        const title = document.getElementById('modal-title');
+        const body = document.getElementById('modal-body');
+        if(title) title.textContent = 'Akses Lab Tertutup';
+        if(body) body.textContent = 'Selesaikan semua materi (100%) terlebih dahulu untuk membuka PhySphere Lab.';
+        if(modal) modal.classList.remove('hidden');
+        return; // do not switch tab
+      }
+    }catch(e){ /* ignore */ }
+  }
+
   document.querySelectorAll('.page').forEach(p=>p.classList.add('hidden'));
   document.getElementById(btn.dataset.page+'-page').classList.remove('hidden');
   document.querySelectorAll('.tab-button').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
-  // if vlab tab opened, ensure canvas resizes & redraws after layout
+  // if vlab tab opened, ensure canvas resizes & redraws after layout (no autoplay)
   if(btn.dataset.page === 'vlab'){
-    setTimeout(()=>{ try{ if(window.vlabRefresh) window.vlabRefresh({autoplay:true}); }catch(e){} },120);
+    setTimeout(()=>{ try{ if(window.vlabRefresh) window.vlabRefresh(); }catch(e){} },120);
   }
   // persist active page to session storage
   try{ sessionStorage.setItem('pysphere_active_page', btn.dataset.page); }catch(e){}
@@ -49,6 +67,10 @@ function makeQuizController(topic){
   const container = document.getElementById('question-container-'+topic);
   const nav = document.getElementById('question-nav-'+topic);
   const timerEl = document.getElementById('timer-'+topic);
+  // hide nav and submit/review controls until the user explicitly starts the topic
+  try{ if(nav) nav.style.display = 'none'; }catch(e){}
+  try{ const submitBtn = document.querySelector(`.submit-topic[data-topic='${topic}']`); if(submitBtn) submitBtn.style.display = 'none'; }catch(e){}
+  try{ const reviewBtn = document.querySelector(`.review-topic[data-topic='${topic}']`); if(reviewBtn) { reviewBtn.disabled = true; reviewBtn.style.opacity = '0.6'; } }catch(e){}
 
   // load persisted answers if available
   function loadPersist(){ try{ const raw = sessionStorage.getItem(storageKey); if(raw){ const parsed = JSON.parse(raw); if(Array.isArray(parsed)) answersLocal = parsed.concat([]).slice(0, qdata.length); } }catch(e){} }
@@ -78,13 +100,17 @@ function makeQuizController(topic){
     } else if(q.type==='order'){
       html += `<div class='mt-2'><ul id='order-list-${topic}-${i}' class='ordering-list'>`;
       q.items.forEach(it=>{ html += `<li class='ordering-item' draggable='true'>${it}</li>`; });
-      html += `</ul><button id='save-ans-${topic}-${i}' class='vlab-button bg-green-500 text-white mt-2'>Simpan Urutan</button></div>`;
+      html += `</ul>`;
+      // only show save button while taking the quiz (not when showing all questions after finish)
+      if(!showAll) html += `<button id='save-ans-${topic}-${i}' class='vlab-button bg-green-500 text-white mt-2'>Simpan Urutan</button>`;
+      html += `</div>`;
     } else {
       html += `<input id='short-answer-${topic}-${i}' type='text' class='mt-2 px-3 py-2 border rounded w-full' placeholder='Jawaban singkat'>`;
     }
     // explanation area (hidden until grading)
     html += `<div class='mt-2 text-sm text-slate-700 explanation' style='display:none'><strong>Pembahasan:</strong> ${q.explanation || ''}</div>`;
-    if(!showAll) html += `</div><div class='mt-3 flex gap-2'><button id='sol-${topic}' class='vlab-button bg-white border'>Pembahasan</button></div>`;
+  // do not show per-question 'Pembahasan' button while quiz is in progress; explanations appear after submission
+  if(!showAll) html += `</div>`;
     card.innerHTML = html;
 
     // attach interactions
@@ -92,7 +118,15 @@ function makeQuizController(topic){
       const prevBtn = card.querySelector('#prev-'+topic);
       const nextBtn = card.querySelector('#next-'+topic);
       if(prevBtn) prevBtn.addEventListener('click', ()=>{ if(idx>0) goto(idx-1); });
-      if(nextBtn) nextBtn.addEventListener('click', ()=>{ if(idx < qdata.length-1) goto(idx+1); });
+      if(nextBtn){
+        // if this is the last question, make the button send/submit instead of next
+        if(i === qdata.length - 1){
+          nextBtn.textContent = 'Kirim';
+          nextBtn.addEventListener('click', ()=>{ try{ finish(); }catch(e){ /* fallback to compute score */ } });
+        } else {
+          nextBtn.addEventListener('click', ()=>{ if(idx < qdata.length-1) goto(idx+1); });
+        }
+      }
     }
 
     // restore saved answer for this index
@@ -112,12 +146,24 @@ function makeQuizController(topic){
       if(list && prev && Array.isArray(prev) && prev.length){ list.innerHTML = ''; prev.forEach(it=>{ const li = document.createElement('li'); li.className='ordering-item'; li.draggable=true; li.textContent=it; list.appendChild(li); }); }
       if(list){ 
         let drag=null; 
+        const saveBtn = card.querySelector(`#save-ans-${topic}-${i}`);
         list.querySelectorAll('.ordering-item').forEach(it=>{ 
           it.addEventListener('dragstart',()=>{ drag=it; it.style.opacity=0.6}); 
-          it.addEventListener('dragend',()=>{ drag=null; it.style.opacity=1; persist(); updateGlobalScore(); }); 
+          it.addEventListener('dragend',()=>{ 
+            drag=null; 
+            it.style.opacity=1; 
+            // when user changes order, mark the question as having unsaved changes
+            if(saveBtn){
+              saveBtn.disabled = false;
+              saveBtn.textContent = 'Simpan Urutan';
+              // visual: change color to indicate unsaved (yellow)
+              saveBtn.classList.remove('bg-green-500');
+              saveBtn.classList.add('bg-yellow-500');
+            }
+            // do NOT persist on drag; previous saved answer remains until user clicks Save
+          }); 
           it.addEventListener('dragover',e=>{ e.preventDefault(); if(drag!==it) list.insertBefore(drag,it); }); 
         });
-        const saveBtn = card.querySelector(`#save-ans-${topic}-${i}`);
         if(saveBtn){ 
           saveBtn.addEventListener('click', ()=>{
             const items = Array.from(list.querySelectorAll('.ordering-item')).map(li=>li.textContent);
@@ -126,8 +172,11 @@ function makeQuizController(topic){
             updateGlobalScore();
             saveBtn.disabled = true; 
             saveBtn.textContent = 'Tersimpan';
+            // restore saved visual (green)
+            saveBtn.classList.remove('bg-yellow-500');
+            saveBtn.classList.add('bg-green-500');
           });
-          if(answersLocal[i] && Array.isArray(answersLocal[i]) && answersLocal[i].length){ saveBtn.disabled = true; saveBtn.textContent = 'Tersimpan'; }
+          if(answersLocal[i] && Array.isArray(answersLocal[i]) && answersLocal[i].length){ saveBtn.disabled = true; saveBtn.textContent = 'Tersimpan'; saveBtn.classList.remove('bg-yellow-500'); saveBtn.classList.add('bg-green-500'); }
         }
       }
     }
@@ -171,8 +220,11 @@ function makeQuizController(topic){
     },1000); 
     renderNav(); 
     renderQuestion();
+    // show question navigation and enable submit for this topic
+    try{ if(nav) nav.style.display = ''; }catch(e){}
     const submitBtn = document.querySelector(`.submit-topic[data-topic='${topic}']`);
-    if(submitBtn){ submitBtn.onclick = ()=>{ finish(); } }
+    if(submitBtn){ submitBtn.style.display = ''; submitBtn.onclick = ()=>{ finish(); } }
+    try{ const reviewBtn = document.querySelector(`.review-topic[data-topic='${topic}']`); if(reviewBtn){ reviewBtn.disabled = true; reviewBtn.style.opacity = '0.6'; } }catch(e){}
   }
 
   function finish(){ 
@@ -205,6 +257,7 @@ function makeQuizController(topic){
     try{ sessionStorage.setItem('pysphere_quiz_finished_'+topic, '1'); }catch(e){}
     try{ if(window.updateTopicUI) window.updateTopicUI(topic); }catch(e){}
     try{ if(window.renderCompletedResults) window.renderCompletedResults(); }catch(e){}
+    try{ const reviewBtn = document.querySelector(`.review-topic[data-topic='${topic}']`); if(reviewBtn){ reviewBtn.disabled = false; reviewBtn.style.opacity = ''; } }catch(e){}
   }
 
   function review(){ console.table(answersLocal); alert('Rangkuman jawaban untuk '+topic+' ditampilkan di konsol (developer).'); }
@@ -336,6 +389,9 @@ TOPICS.forEach(t=> setTimeout(()=>{ try{ window.updateTopicUI(t); }catch(e){} },
     ek: document.getElementById('vlab-ek'),
     et: document.getElementById('vlab-et')
   };
+  // simulation timing controls
+  let simStartTime = 0;
+  let simRunDuration = Infinity; // seconds; when reached, simulation stops and results are shown
 
   const resize = () => {
     const parent = canvas.parentElement;
@@ -390,24 +446,19 @@ TOPICS.forEach(t=> setTimeout(()=>{ try{ window.updateTopicUI(t); }catch(e){} },
   const dt = 0.016;
   function step(){
     getSliders();
+    // update physics state
     if(mode === 'pegas'){
       omega = Math.sqrt(k/m);
       period = 2*Math.PI/omega;
       a = -(k/m) * x;
       v += a * dt;
       x += v * dt;
-      const EP = 0.5 * k * x * x;
-      const EK = 0.5 * m * v * v;
-      const ET = EP + EK;
-      if(outputs.period) outputs.period.textContent = period.toFixed(3);
-      if(outputs.omega) outputs.omega.textContent = omega.toFixed(3);
-      if(outputs.pos) outputs.pos.textContent = x.toFixed(3) + ' m';
-      if(outputs.vel) outputs.vel.textContent = v.toFixed(3) + ' m/s';
-      if(outputs.acc) outputs.acc.textContent = a.toFixed(3) + ' m/s²';
-      if(outputs.ep) outputs.ep.textContent = EP.toFixed(3);
-      if(outputs.ek) outputs.ek.textContent = EK.toFixed(3);
-      if(outputs.et) outputs.et.textContent = ET.toFixed(3);
-      if(record) records.push({t:performance.now(),mode,x,v,a,EP,EK,ET});
+      if(record) {
+        const EP = 0.5 * k * x * x;
+        const EK = 0.5 * m * v * v;
+        const ET = EP + EK;
+        records.push({t:performance.now(),mode,x,v,a,EP,EK,ET});
+      }
     } else {
       omega = Math.sqrt(g/L);
       period = 2*Math.PI/omega;
@@ -415,22 +466,26 @@ TOPICS.forEach(t=> setTimeout(()=>{ try{ window.updateTopicUI(t); }catch(e){} },
       a = -(g/L) * Math.sin(theta);
       v += a * dt;
       x += v * dt;
-      const h = L * (1 - Math.cos(theta));
-      const EP = m * g * h;
-      const EK = 0.5 * m * (v*L) * (v*L);
-      const ET = EP + EK;
-      if(outputs.period) outputs.period.textContent = period.toFixed(3);
-      if(outputs.omega) outputs.omega.textContent = omega.toFixed(3);
-      if(outputs.pos) outputs.pos.textContent = (theta * 180/Math.PI).toFixed(2) + ' °';
-      if(outputs.vel) outputs.vel.textContent = v.toFixed(3) + ' rad/s';
-      if(outputs.acc) outputs.acc.textContent = a.toFixed(3) + ' rad/s²';
-      if(outputs.ep) outputs.ep.textContent = EP.toFixed(3);
-      if(outputs.ek) outputs.ek.textContent = EK.toFixed(3);
-      if(outputs.et) outputs.et.textContent = ET.toFixed(3);
-      if(record) records.push({t:performance.now(),mode,theta,v,a,EP,EK,ET});
+      if(record) {
+        const h = L * (1 - Math.cos(theta));
+        const EP = m * g * h;
+        const EK = 0.5 * m * (v*L) * (v*L);
+        const ET = EP + EK;
+        records.push({t:performance.now(),mode,theta,v,a,EP,EK,ET});
+      }
     }
 
     draw();
+
+    // stop automatically after run duration (if set)
+    if(simStartTime && isFinite(simRunDuration)){
+      const elapsed = (performance.now() - simStartTime) / 1000;
+      if(elapsed >= simRunDuration){
+        finishSimulation();
+        return;
+      }
+    }
+
     if(running) rafId = requestAnimationFrame(step);
   }
 
@@ -443,7 +498,12 @@ TOPICS.forEach(t=> setTimeout(()=>{ try{ window.updateTopicUI(t); }catch(e){} },
         x = thetaDeg * Math.PI / 180;
         v = 0;
       }
+      // set run duration to a few periods (or fallback to 5s)
+      try{ simRunDuration = Math.max(3 * (period || (2*Math.PI/Math.sqrt(k/m))), 5); }catch(e){ simRunDuration = 5; }
+      simStartTime = performance.now();
       running = true;
+      // hide any previous result
+      const resultCard = document.getElementById('vlab-result-card'); if(resultCard) resultCard.classList.add('hidden');
       rafId = requestAnimationFrame(step);
     }
   });
@@ -454,42 +514,77 @@ TOPICS.forEach(t=> setTimeout(()=>{ try{ window.updateTopicUI(t); }catch(e){} },
 
   document.getElementById('vlab-reset')?.addEventListener('click', ()=>{
     running = false; record = false; records.length = 0; if(rafId) cancelAnimationFrame(rafId);
-    x = 0; v = 0; a = 0; 
-    if(outputs.pos) outputs.pos.textContent='--'; 
-    if(outputs.vel) outputs.vel.textContent='--'; 
-    if(outputs.acc) outputs.acc.textContent='--'; 
-    if(outputs.ep) outputs.ep.textContent='--'; 
-    if(outputs.ek) outputs.ek.textContent='--'; 
-    if(outputs.et) outputs.et.textContent='--'; 
-    if(outputs.period) outputs.period.textContent='--'; 
-    if(outputs.omega) outputs.omega.textContent='--'; 
+    x = 0; v = 0; a = 0; simStartTime = 0; simRunDuration = Infinity;
     draw();
+    const resultCard = document.getElementById('vlab-result-card'); if(resultCard) resultCard.classList.add('hidden');
   });
 
-  document.getElementById('vlab-record')?.addEventListener('click', ()=>{
-    record = !record; 
-    const btn = document.getElementById('vlab-record');
-    if(btn) btn.textContent = record ? 'Berhenti Rekam' : 'Rekam';
-    if(record) records.length = 0;
+  // skip button: jump to simulation end and show results
+  document.getElementById('vlab-skip')?.addEventListener('click', ()=>{
+    finishSimulation();
   });
 
-  document.getElementById('vlab-download')?.addEventListener('click', ()=>{
-    if(records.length === 0){ alert('Tidak ada data untuk diunduh.'); return; }
-    const keys = Object.keys(records[0]);
-    const csv = [keys.join(',')].concat(records.map(r => keys.map(k => r[k]).join(','))).join('\n');
-    const blob = new Blob([csv], {type:'text/csv'});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a'); 
-    a.href = url; 
-    a.download = 'vlab-records.csv'; 
-    document.body.appendChild(a); 
-    a.click(); 
-    a.remove(); 
-    URL.revokeObjectURL(url);
-  });
+  // finalization: show results summary and stop simulation
+  function finishSimulation(){
+    try{ running = false; if(rafId) cancelAnimationFrame(rafId); }catch(e){}
+    // compute final metrics
+    getSliders();
+    let finalOmega = 0, finalPeriod = 0, finalEP = 0, finalEK = 0, finalET = 0, finalPos = '';
+    if(mode === 'pegas'){
+      finalOmega = Math.sqrt(k/m);
+      finalPeriod = 2*Math.PI/finalOmega;
+      finalEP = 0.5 * k * x * x;
+      finalEK = 0.5 * m * v * v;
+      finalET = finalEP + finalEK;
+      finalPos = x.toFixed(3) + ' m';
+    } else {
+      finalOmega = Math.sqrt(g/L);
+      finalPeriod = 2*Math.PI/finalOmega;
+      const theta = x;
+      const h = L * (1 - Math.cos(theta));
+      finalEP = m * g * h;
+      finalEK = 0.5 * m * (v*L) * (v*L);
+      finalET = finalEP + finalEK;
+      finalPos = (theta * 180/Math.PI).toFixed(2) + ' °';
+    }
+    // populate result panel
+    const panel = document.getElementById('vlab-result-panel');
+    if(panel){
+      panel.innerHTML = `
+        <div>Mode: <strong>${mode === 'pegas' ? 'Pegas' : 'Bandul'}</strong></div>
+        <div>Periode (T): <strong>${finalPeriod.toFixed(3)}</strong> s</div>
+        <div>Frekuensi Sudut (ω): <strong>${finalOmega.toFixed(3)}</strong> rad/s</div>
+        <div>Posisi Akhir: <strong>${finalPos}</strong></div>
+        <div>Kecepatan Akhir: <strong>${v.toFixed(3)}</strong></div>
+        <div>Percepatan Akhir: <strong>${a.toFixed(3)}</strong></div>
+        <div>Energi Potensial (EP): <strong>${finalEP.toFixed(3)}</strong> J</div>
+        <div>Energi Kinetik (EK): <strong>${finalEK.toFixed(3)}</strong> J</div>
+        <div class='font-bold'>Energi Total (ET): <strong>${finalET.toFixed(3)}</strong> J</div>
+      `;
+    }
+    const resultCard = document.getElementById('vlab-result-card'); if(resultCard) resultCard.classList.remove('hidden');
+    draw();
+    simStartTime = 0; simRunDuration = Infinity;
+  }
 
   window.vlabSetMode = function(m){
-    try{ mode = m; if(outputs.mode) outputs.mode.textContent = (m === 'pegas') ? 'Pegas' : 'Bandul'; }catch(e){}
+    try{
+      mode = m;
+      if(outputs.mode) outputs.mode.textContent = (m === 'pegas') ? 'Pegas' : 'Bandul';
+      // when switching mode, re-read sliders and reset position to sensible initial for that mode
+      try{ getSliders(); }catch(e){}
+      if(mode === 'pegas'){
+        // set initial displacement to amplitude and zero velocity
+        x = A; v = 0; a = 0;
+      } else {
+        // set initial angle from theta slider
+        const thetaDeg = parseFloat(document.getElementById('theta-slider')?.value || 10);
+        x = thetaDeg * Math.PI / 180; v = 0; a = 0;
+      }
+      // hide any previous result card when switching modes
+      const resultCard = document.getElementById('vlab-result-card'); if(resultCard) resultCard.classList.add('hidden');
+      draw();
+    }catch(e){}
   };
 
   draw();
@@ -498,9 +593,7 @@ TOPICS.forEach(t=> setTimeout(()=>{ try{ window.updateTopicUI(t); }catch(e){} },
     try{
       resize();
       draw();
-      if(opts && opts.autoplay && !running){
-        setTimeout(()=> document.getElementById('vlab-start')?.click(), 200);
-      }
+      // intentionally do not autoplay; user must press Start
     }catch(e){}
   };
 })();
@@ -550,8 +643,7 @@ setTimeout(()=>{
   document.getElementById('g-slider')?.addEventListener('input', e=>{ if(gVal) gVal.textContent = parseFloat(e.target.value).toFixed(2); });
   document.getElementById('theta-slider')?.addEventListener('input', e=>{ if(thetaVal) thetaVal.textContent = parseInt(e.target.value,10); });
 
-  document.getElementById('start-btn')?.addEventListener('click', ()=>document.getElementById('vlab-start')?.click());
-  document.getElementById('reset-btn')?.addEventListener('click', ()=>document.getElementById('vlab-reset')?.click());
+  // legacy left-column quick buttons removed; controls live in the result/control card
 
   setModeUI('pegas');
 })();
@@ -626,4 +718,106 @@ setTimeout(()=>{
 
   updateProgressUI();
   refreshButtons();
+})();
+
+// Simple client-side login/register (localStorage) — lightweight for demo
+(function(){
+  function el(id){return document.getElementById(id)}
+  const openLogin = el('btn-open-login');
+  const openReg = el('btn-open-register');
+  const backFromLogin = el('login-back');
+  const backFromReg = el('reg-back');
+  const loginSubmit = el('login-submit');
+  const regSubmit = el('reg-submit');
+  const logoutBtn = el('btn-logout');
+
+  function showPage(name){ document.querySelectorAll('.page').forEach(p=>p.classList.add('hidden')); const target = document.getElementById(name+'-page') || document.getElementById(name+'-page'); if(target) target.classList.remove('hidden'); }
+
+  function showProfileView(){
+    const user = JSON.parse(localStorage.getItem('pysphere_user_current') || 'null');
+    if(user){
+      el('not-logged').classList.add('hidden');
+      el('logged-in').classList.remove('hidden');
+      el('profile-name').textContent = user.name || user.email;
+      el('profile-email').textContent = user.email || '';
+    } else {
+      el('not-logged').classList.remove('hidden');
+      el('logged-in').classList.add('hidden');
+    }
+  }
+
+  // open pages from profile
+  if(openLogin) openLogin.addEventListener('click', ()=>{ document.querySelectorAll('.page').forEach(p=>p.classList.add('hidden')); el('login-page').classList.remove('hidden'); });
+  if(openReg) openReg.addEventListener('click', ()=>{ document.querySelectorAll('.page').forEach(p=>p.classList.add('hidden')); el('register-page').classList.remove('hidden'); });
+  if(backFromLogin) backFromLogin.addEventListener('click', ()=>{ document.querySelectorAll('.page').forEach(p=>p.classList.add('hidden')); el('profile-page').classList.remove('hidden'); showProfileView(); });
+  if(backFromReg) backFromReg.addEventListener('click', ()=>{ document.querySelectorAll('.page').forEach(p=>p.classList.add('hidden')); el('profile-page').classList.remove('hidden'); showProfileView(); });
+
+  // register: store simple user map in localStorage (email->user)
+  if(regSubmit) regSubmit.addEventListener('click', ()=>{
+    const name = (el('reg-name')?.value||'').trim();
+    const email = (el('reg-email')?.value||'').trim().toLowerCase();
+    const pass = (el('reg-password')?.value||'');
+    const msg = el('reg-msg');
+    msg.textContent = '';
+    if(!email || !pass){ msg.textContent = 'Email dan password wajib diisi.'; return; }
+    const users = JSON.parse(localStorage.getItem('pysphere_users')||'{}');
+    if(users[email]){ msg.textContent = 'Email sudah terdaftar.'; return; }
+    users[email] = { name, email, password: pass };
+    localStorage.setItem('pysphere_users', JSON.stringify(users));
+    // auto-login
+    localStorage.setItem('pysphere_user_current', JSON.stringify(users[email]));
+    document.querySelectorAll('.page').forEach(p=>p.classList.add('hidden'));
+    el('profile-page').classList.remove('hidden');
+    showProfileView();
+  });
+
+  // login
+  if(loginSubmit) loginSubmit.addEventListener('click', ()=>{
+    const email = (el('login-email')?.value||'').trim().toLowerCase();
+    const pass = (el('login-password')?.value||'');
+    const msg = el('login-msg'); msg.textContent = '';
+    if(!email || !pass){ msg.textContent = 'Email dan password wajib diisi.'; return; }
+    const users = JSON.parse(localStorage.getItem('pysphere_users')||'{}');
+    const u = users[email];
+    if(!u || u.password !== pass){ msg.textContent = 'Email atau password salah.'; return; }
+    localStorage.setItem('pysphere_user_current', JSON.stringify(u));
+    document.querySelectorAll('.page').forEach(p=>p.classList.add('hidden'));
+    el('profile-page').classList.remove('hidden');
+    showProfileView();
+  });
+
+  if(logoutBtn) logoutBtn.addEventListener('click', ()=>{
+    localStorage.removeItem('pysphere_user_current');
+    showProfileView();
+  });
+
+  // initialize profile view on load
+  window.addEventListener('DOMContentLoaded', showProfileView);
+})();
+
+// Modal close handlers: allow closing modal with the Tutup button or clicking outside the dialog
+ (function(){
+  try{
+    const modal = document.getElementById('modal');
+    const modalClose = document.getElementById('modal-close');
+    if(modalClose) modalClose.addEventListener('click', ()=>{
+      try{
+        const title = document.getElementById('modal-title')?.textContent || '';
+        // hide modal first
+        if(modal) modal.classList.add('hidden');
+        // if this is the access-locked modal, navigate to Materi
+        if(/akses lab tertutup/i.test(title) || /akses lab/i.test(title)){
+          const btn = document.querySelector('.tab-button[data-page="materi"]');
+          if(btn) btn.click();
+        }
+      }catch(e){ if(modal) modal.classList.add('hidden'); }
+    });
+    if(modal){
+      // clicking the overlay (modal itself) closes it
+      modal.addEventListener('click', (e)=>{ if(e.target === modal) modal.classList.add('hidden'); });
+      // prevent clicks inside the dialog from closing
+      const dialog = modal.querySelector('div');
+      if(dialog) dialog.addEventListener('click', e=> e.stopPropagation());
+    }
+  }catch(e){ console.warn('modal handlers failed', e); }
 })();

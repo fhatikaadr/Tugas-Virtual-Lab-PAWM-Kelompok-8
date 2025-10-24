@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>PhySphere — Login</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body class="min-h-screen flex items-center justify-center bg-gradient-to-b from-purple-50 to-yellow-50">
+  <div class="max-w-md w-full p-6">
+    <div class="card">
+      <h2 class="text-xl font-bold text-purple-800 mb-3">Masuk ke PhySphere</h2>
+
+      <label class="block text-sm text-slate-600">Email</label>
+      <input id="login-email" type="email" class="mt-2 px-3 py-2 border rounded w-full" placeholder="you@example.com">
+
+      <label class="block text-sm text-slate-600 mt-3">Password</label>
+      <input id="login-password" type="password" class="mt-2 px-3 py-2 border rounded w-full" placeholder="••••••">
+
+      <div class="mt-4 flex gap-2">
+        <button id="login-submit" class="vlab-button bg-blue-600 text-white">Masuk</button>
+        <a href="index.html" class="vlab-button bg-white border">Kembali</a>
+      </div>
+
+      <div id="login-msg" class="text-sm text-red-500 mt-3"></div>
+      <hr class="my-4">
+      <div class="text-sm text-slate-600">Belum punya akun? <a href="register.html" class="text-blue-600 font-semibold">Daftar</a></div>
+    </div>
+  </div>
+
+  <script>
+    (function(){
+      function el(id){return document.getElementById(id)}
+      // if already logged in, redirect to main
+      const current = localStorage.getItem('pysphere_user_current');
+      if(current){ window.location.href = 'PhySphere.html'; }
+
+      el('login-submit').addEventListener('click', function(){
+        const email = (el('login-email').value||'').trim().toLowerCase();
+        const pass = el('login-password').value||'';
+        const msg = el('login-msg'); msg.textContent = '';
+        if(!email || !pass){ msg.textContent = 'Email dan password wajib diisi.'; return; }
+        const users = JSON.parse(localStorage.getItem('pysphere_users')||'{}');
+        const u = users[email];
+        if(!u || u.password !== pass){ msg.textContent = 'Email atau password salah.'; return; }
+        localStorage.setItem('pysphere_user_current', JSON.stringify(u));
+        // redirect to main
+        window.location.href = 'PhySphere.html';
+      });
+    })();
+  </script>
+</body>
+</html>
