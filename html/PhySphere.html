@@ -1,6 +1,19 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../js/supabase-client.js"></script>
+    <script>
+      // AUTHENTICATION GUARD
+      (async function() {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          // User BELUM login, paksa kembali ke halaman login
+          window.location.href = 'login.html';
+        }
+        // Jika ada session, biarkan halaman dimuat
+      })();
+    </script>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>PhySphere — GHS (Modern)</title>

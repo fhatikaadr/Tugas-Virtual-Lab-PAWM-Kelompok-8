@@ -648,11 +648,57 @@ setTimeout(()=>{
   setModeUI('pegas');
 })();
 
-// MODULES: sidebar navigation + progress
+// --- GANTI BLOK FUNGSI MODUL LAMA DENGAN INI ---
 (function(){
   const MODULES = ['getaran','ghs','bandul','pegas'];
-  let state = {};
+  let state = {}; // Ini akan menyimpan progress, misal: {"getaran": true}
+  let loaded = false; // Flag agar tidak double-load
+  let user_id = null; // ID user yang sedang login
 
+// --- FUNGSI BARU: Mengambil progress dari Supabase ---
+  async function loadProgressFromSupabase() {
+    if (loaded) return; // Mencegah double-load
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      console.log("User tidak login, tidak bisa load progress.");
+      return; // User tidak login
+    }
+    user_id = user.id;
+
+    // Ambil data dari tabel 'profile' (BUKAN 'profiles')
+    const { data, error } = await supabase
+      .from('profile') // <-- DIPERBAIKI
+      .select('materi_progress') // Hanya ambil kolom yang kita butuh
+      .eq('id', user_id)
+      .single(); // ambil satu baris data saja
+
+    if (data && data.materi_progress) {
+      state = data.materi_progress;
+    } else if (error) {
+       console.error("Error loading progress:", error.message);
+    }
+    
+    loaded = true;
+    updateProgressUI();
+    refreshButtons();
+  }
+
+// --- FUNGSI BARU: Menyimpan progress ke Supabase ---
+  async function saveProgressToSupabase() {
+    if (!user_id || !loaded) return; 
+
+    const { error } = await supabase
+      .from('profile') // <-- DIPERBAIKI
+      .update({ materi_progress: state }) 
+      .eq('id', user_id); 
+
+    if (error) {
+      console.error("Error saving progress:", error.message);
+    }
+  }
+
+  // --- FUNGSI LAMA (Tidak berubah) ---
   const updateProgressUI = () => {
     const total = MODULES.length;
     const done = Object.keys(state).filter(k => state[k]).length;
@@ -663,6 +709,7 @@ setTimeout(()=>{
     if(pctEl) pctEl.textContent = pct + '%';
   };
 
+  // --- FUNGSI LAMA (Tidak berubah) ---
   const refreshButtons = () => {
     MODULES.forEach(id=>{
       const btn = document.querySelector(`.mark-read[data-module='${id}']`);
@@ -680,6 +727,7 @@ setTimeout(()=>{
     });
   };
 
+  // --- FUNGSI LAMA (Tidak berubah, tapi pastikan 'showModule' ada) ---
   const materiButtons = Array.from(document.querySelectorAll('.materi-link'));
   const moduleArticles = MODULES.map(id => document.getElementById(id));
 
@@ -706,21 +754,24 @@ setTimeout(()=>{
     showModule(MODULES[0]);
   })();
 
+  // --- LOGIKA KLIK TOMBOL (DIMODIFIKASI) ---
   document.querySelectorAll('.mark-read').forEach(btn=>{
     btn.addEventListener('click', ()=>{
       const mod = btn.dataset.module;
       if(!mod) return;
-      state[mod] = !state[mod];
-      updateProgressUI();
-      refreshButtons();
+      state[mod] = !state[mod]; // Update state lokal
+      updateProgressUI();      // Update UI
+      refreshButtons();        // Update tombol
+      saveProgressToSupabase(); // PANGGIL FUNGSI SAVE BARU!
     });
   });
 
-  updateProgressUI();
-  refreshButtons();
+  // --- MEMUAT DATA SAAT HALAMAN DIBUKA ---
+  // Panggil fungsi load baru kita
+  loadProgressFromSupabase();
 })();
 
-// Simple client-side login/register (localStorage) — lightweight for demo
+// --- GANTI BLOK FUNGSI LOGIN/REGISTER LAMA DENGAN INI ---
 (function(){
   function el(id){return document.getElementById(id)}
   const openLogin = el('btn-open-login');
@@ -733,12 +784,25 @@ setTimeout(()=>{
 
   function showPage(name){ document.querySelectorAll('.page').forEach(p=>p.classList.add('hidden')); const target = document.getElementById(name+'-page') || document.getElementById(name+'-page'); if(target) target.classList.remove('hidden'); }
 
-  function showProfileView(){
-    const user = JSON.parse(localStorage.getItem('pysphere_user_current') || 'null');
+// --- FUNGSI PROFIL BARU ---
+  async function showProfileView(){
+    // Ambil data user yang sedang login dari Supabase
+    const { data: { user } } = await supabase.auth.getUser();
+
     if(user){
       el('not-logged').classList.add('hidden');
       el('logged-in').classList.remove('hidden');
-      el('profile-name').textContent = user.name || user.email;
+
+      // Ambil 'full_name' dari tabel 'profile' (BUKAN 'profiles')
+      const { data: profileData, error } = await supabase
+        .from('profile') // <-- DIPERBAIKI
+        .select('full_name')
+        .eq('id', user.id)
+        .single();
+
+      let displayName = (profileData && profileData.full_name) ? profileData.full_name : user.email;
+
+      el('profile-name').textContent = displayName;
       el('profile-email').textContent = user.email || '';
     } else {
       el('not-logged').classList.remove('hidden');
@@ -752,72 +816,17 @@ setTimeout(()=>{
   if(backFromLogin) backFromLogin.addEventListener('click', ()=>{ document.querySelectorAll('.page').forEach(p=>p.classList.add('hidden')); el('profile-page').classList.remove('hidden'); showProfileView(); });
   if(backFromReg) backFromReg.addEventListener('click', ()=>{ document.querySelectorAll('.page').forEach(p=>p.classList.add('hidden')); el('profile-page').classList.remove('hidden'); showProfileView(); });
 
-  // register: store simple user map in localStorage (email->user)
-  if(regSubmit) regSubmit.addEventListener('click', ()=>{
-    const name = (el('reg-name')?.value||'').trim();
-    const email = (el('reg-email')?.value||'').trim().toLowerCase();
-    const pass = (el('reg-password')?.value||'');
-    const msg = el('reg-msg');
-    msg.textContent = '';
-    if(!email || !pass){ msg.textContent = 'Email dan password wajib diisi.'; return; }
-    const users = JSON.parse(localStorage.getItem('pysphere_users')||'{}');
-    if(users[email]){ msg.textContent = 'Email sudah terdaftar.'; return; }
-    users[email] = { name, email, password: pass };
-    localStorage.setItem('pysphere_users', JSON.stringify(users));
-    // auto-login
-    localStorage.setItem('pysphere_user_current', JSON.stringify(users[email]));
-    document.querySelectorAll('.page').forEach(p=>p.classList.add('hidden'));
-    el('profile-page').classList.remove('hidden');
-    showProfileView();
-  });
+  // register (logika dipindah ke register.html)
+  // login (logika dipindah ke login.html)
+  // Hapus event listener 'regSubmit' dan 'loginSubmit' dari file ini.
 
-  // login
-  if(loginSubmit) loginSubmit.addEventListener('click', ()=>{
-    const email = (el('login-email')?.value||'').trim().toLowerCase();
-    const pass = (el('login-password')?.value||'');
-    const msg = el('login-msg'); msg.textContent = '';
-    if(!email || !pass){ msg.textContent = 'Email dan password wajib diisi.'; return; }
-    const users = JSON.parse(localStorage.getItem('pysphere_users')||'{}');
-    const u = users[email];
-    if(!u || u.password !== pass){ msg.textContent = 'Email atau password salah.'; return; }
-    localStorage.setItem('pysphere_user_current', JSON.stringify(u));
-    document.querySelectorAll('.page').forEach(p=>p.classList.add('hidden'));
-    el('profile-page').classList.remove('hidden');
-    showProfileView();
-  });
-
-  if(logoutBtn) logoutBtn.addEventListener('click', ()=>{
-    localStorage.removeItem('pysphere_user_current');
-    showProfileView();
+  // --- LOGOUT BARU ---
+  if(logoutBtn) logoutBtn.addEventListener('click', async ()=>{
+    await supabase.auth.signOut();
+    // Redirect ke halaman login setelah logout
+    window.location.href = 'login.html'; 
   });
 
   // initialize profile view on load
   window.addEventListener('DOMContentLoaded', showProfileView);
-})();
-
-// Modal close handlers: allow closing modal with the Tutup button or clicking outside the dialog
- (function(){
-  try{
-    const modal = document.getElementById('modal');
-    const modalClose = document.getElementById('modal-close');
-    if(modalClose) modalClose.addEventListener('click', ()=>{
-      try{
-        const title = document.getElementById('modal-title')?.textContent || '';
-        // hide modal first
-        if(modal) modal.classList.add('hidden');
-        // if this is the access-locked modal, navigate to Materi
-        if(/akses lab tertutup/i.test(title) || /akses lab/i.test(title)){
-          const btn = document.querySelector('.tab-button[data-page="materi"]');
-          if(btn) btn.click();
-        }
-      }catch(e){ if(modal) modal.classList.add('hidden'); }
-    });
-    if(modal){
-      // clicking the overlay (modal itself) closes it
-      modal.addEventListener('click', (e)=>{ if(e.target === modal) modal.classList.add('hidden'); });
-      // prevent clicks inside the dialog from closing
-      const dialog = modal.querySelector('div');
-      if(dialog) dialog.addEventListener('click', e=> e.stopPropagation());
-    }
-  }catch(e){ console.warn('modal handlers failed', e); }
 })();

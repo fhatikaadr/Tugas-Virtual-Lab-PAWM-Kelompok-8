@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../js/supabase-client.js"></script>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>PhySphere — Register</title>
@@ -35,22 +37,48 @@
   <script>
     (function(){
       function el(id){return document.getElementById(id)}
-      // if already logged in, redirect to main
-      const current = localStorage.getItem('pysphere_user_current');
-      if(current){ window.location.href = 'PhySphere.html'; }
 
-      el('reg-submit').addEventListener('click', function(){
+      // Cek apakah sudah login dengan Supabase
+      (async function() {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          // User sudah login, lempar ke halaman utama
+          window.location.href = 'PhySphere.html';
+        }
+      })();
+
+      // Ganti logika 'click' dengan Supabase
+      el('reg-submit').addEventListener('click', async function(){
         const name = (el('reg-name').value||'').trim();
         const email = (el('reg-email').value||'').trim().toLowerCase();
         const pass = el('reg-password').value||'';
         const msg = el('reg-msg'); msg.textContent = '';
+        
         if(!email || !pass){ msg.textContent = 'Email dan password wajib diisi.'; return; }
-        const users = JSON.parse(localStorage.getItem('pysphere_users')||'{}');
-        if(users[email]){ msg.textContent = 'Email sudah terdaftar.'; return; }
-        users[email] = { name: name || email, email, password: pass };
-        localStorage.setItem('pysphere_users', JSON.stringify(users));
-        // auto-login and redirect
-        localStorage.setItem('pysphere_user_current', JSON.stringify(users[email]));
+
+        // LOGIKA SUPABASE BARU
+        msg.textContent = 'Mendaftarkan...';
+        const { data, error } = await supabase.auth.signUp({
+          email: email,
+          password: pass,
+          options: {
+            data: {
+              // Data ini akan ditangkap oleh Trigger yang kita buat di Tahap 1
+              full_name: name 
+            }
+          }
+        });
+
+        if (error) {
+          msg.textContent = 'Error: ' + error.message;
+          return;
+        }
+
+        // Jika berhasil, Supabase otomatis login (asumsi konfirmasi email dimatikan)
+        msg.textContent = 'Registrasi berhasil! Mengarahkan...';
+
+        // Trigger di Tahap 1 akan otomatis membuat profilnya.
+        // Kita tinggal redirect ke halaman utama.
         window.location.href = 'PhySphere.html';
       });
     })();
