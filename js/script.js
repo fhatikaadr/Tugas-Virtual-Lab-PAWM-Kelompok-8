@@ -36,9 +36,8 @@
       });
     });
 
-    // attach modal close
-    const modalClose = document.getElementById('modal-close');
-    if(modalClose) modalClose.addEventListener('click', ()=> document.getElementById('modal').classList.add('hidden'));
+  // NOTE: modal handlers are provided by the full script to avoid duplicate/conflicting listeners.
+  // (If script-full.js is not loaded we'll still allow manual hide via overlay click.)
 
     // attach simple quiz button handlers for start/submit/retry/review
     document.querySelectorAll('.start-topic').forEach(b=> b.addEventListener('click', startTopicHandler));

@@ -31,6 +31,27 @@ document.querySelectorAll('.tab-button').forEach(btn=>btn.addEventListener('clic
   try{ sessionStorage.setItem('pysphere_active_page', btn.dataset.page); }catch(e){}
 }));
 
+// Consolidated modal handlers: overlay click closes modal, and the modal "Buka Materi" button
+// will both close the modal and navigate to the Materi tab to avoid conflicting listeners.
+(function attachModalHandlers(){
+  const modal = document.getElementById('modal');
+  const modalClose = document.getElementById('modal-close');
+  if(modal){
+    // click outside content (on overlay) closes modal
+    modal.addEventListener('click', (ev)=>{
+      if(ev.target === modal) modal.classList.add('hidden');
+    });
+  }
+  if(modalClose){
+    modalClose.addEventListener('click', ()=>{
+      if(modal) modal.classList.add('hidden');
+      // navigate to materi tab so the user can continue
+      const materiBtn = document.querySelector('.tab-button[data-page="materi"]');
+      if(materiBtn) materiBtn.click();
+    });
+  }
+})();
+
 // --- Quiz Data: separate QUIZZES per topic ---
 function shuffleArray(arr){return arr.slice().sort(()=>Math.random()-0.5)}
 
