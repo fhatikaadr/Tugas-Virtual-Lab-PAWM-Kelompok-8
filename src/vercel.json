@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    { "source": "/", "destination": "/html/index.html" },
+    { "source": "/login", "destination": "/html/login.html" },
+    { "source": "/register", "destination": "/html/register.html" },
+    { "source": "/PhySphere", "destination": "/html/PhySphere.html" }
+  ]
+}
