@@ -4,23 +4,14 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/supabase.min.js"></script>
   <script src="/src/js/supabase-client.js"></script>
     <script>
-      // AUTHENTICATION GUARD: wait for Supabase client to initialize
-      (async function(){
-        try{
-          await (window.__supabaseReady || Promise.resolve());
-        }catch(e){
-          console.warn('Supabase init error (guard)', e);
+      // AUTHENTICATION GUARD
+      (async function() {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          // User BELUM login, paksa kembali ke halaman login
+          window.location.href = 'login.html';
         }
-        try{
-          if (!window.supabase) { console.warn('supabase client not available'); return; }
-          const { data: { session } } = await supabase.auth.getSession();
-          if (!session) {
-            // User not logged in -> go to the login route
-            window.location.href = '/login';
-          }
-        }catch(e){
-          console.warn('Auth guard check failed', e);
-        }
+        // Jika ada session, biarkan halaman dimuat
       })();
     </script>
   <meta charset="utf-8" />
