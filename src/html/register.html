@@ -98,6 +98,7 @@
           const up = await supabase.from('profile').upsert({
             id: newUser.id,
             full_name: name,
+            email: email,
             materi_progress: 0,
             updated_at: new Date().toISOString()
           }, { onConflict: 'id' });
