@@ -47,12 +47,27 @@ function _initSupabaseClient(){
 				document.head.appendChild(s);
 			});
 
-				// Try local file first, then CDN UMD. If both fail, attempt dynamic ESM import
-				// from the CDN (some CDN paths/versions vary; +esm can provide a module build).
-				tryScript('/src/js/supabase.min.js')
-					.catch(() => tryScript('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/supabase.min.js'))
+				// Prefer dynamic ESM imports for local files (some local copies are ESM).
+				// Try dynamic import of a local ESM first; if that fails, try the UMD bundle
+				// from a CDN, and finally fall back to dynamic ESM import (+esm) from the CDN.
+				const tryImport = (src) => import(src)
+					.then((m) => {
+						if (m && typeof m.createClient === 'function') {
+							window.supabase = m.createClient(SUPABASE_URL, SUPABASE_KEY);
+							return window.supabase;
+						}
+						throw new Error('Imported module loaded but createClient not found: ' + src);
+					});
+
+				// 1) Try dynamic import of local ESM (works if /src/js/supabase.min.js is an ESM bundle)
+				tryImport('/src/js/supabase.min.js')
 					.catch(() => {
-						// As a last resort attempt dynamic ESM import from jsdelivr (+esm).
+						// 2) If local ESM fails, try to load a UMD bundle via script tag from a CDN
+						// Use the UMD build path which should expose a global createClient.
+						return tryScript('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js');
+					})
+					.catch(() => {
+						// 3) As a last resort attempt dynamic ESM import from jsdelivr (+esm).
 						return import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm')
 							.then((m) => {
 								if (m && typeof m.createClient === 'function') {
