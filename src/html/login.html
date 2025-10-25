@@ -70,8 +70,9 @@
           return;
         }
 
-        // Login berhasil, Supabase menyimpan session di localStorage-nya sendiri
-  // Redirect to main
+    // Login berhasil, Supabase menyimpan session di localStorage-nya sendiri
+    // set default landing tab to Beranda and redirect
+    try{ sessionStorage.setItem('pysphere_active_page','beranda'); }catch(e){}
   window.location.href = '/PhySphere';
       });
     })();

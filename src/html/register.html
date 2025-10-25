@@ -111,6 +111,7 @@
 
         msg.textContent = 'Registrasi berhasil! Mengarahkan...';
         // Redirect to main (use absolute route so rewrites work)
+        try{ sessionStorage.setItem('pysphere_active_page','beranda'); }catch(e){}
         window.location.href = '/PhySphere';
       });
     })();
