@@ -872,14 +872,19 @@ setTimeout(()=>{
 
   // --- LOGIKA KLIK TOMBOL (DIMODIFIKASI) ---
   document.querySelectorAll('.mark-read').forEach(btn=>{
-    btn.addEventListener('click', ()=>{
+    // Use a capturing handler and stop other listeners so the lightweight
+    // handlers in script.js (which toggle dataset attributes) don't clash
+    // with our authoritative state object.
+    btn.addEventListener('click', (e)=>{
+      try{ e.stopImmediatePropagation(); }catch(_){ /* ignore */ }
       const mod = btn.dataset.module;
       if(!mod) return;
       state[mod] = !state[mod]; // Update state lokal
       updateProgressUI();      // Update UI
       refreshButtons();        // Update tombol
-      saveProgressToSupabase(); // PANGGIL FUNGSI SAVE BARU!
-    });
+      // Save but don't block UI
+      saveProgressToSupabase().catch(err=>console.warn('saveProgress failed', err));
+    }, { passive: true });
   });
 
   // --- MEMUAT DATA SAAT HALAMAN DIBUKA ---
