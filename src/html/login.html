@@ -57,22 +57,32 @@
         
         if(!email || !pass){ msg.textContent = 'Email dan password wajib diisi.'; return; }
 
-        // LOGIKA SUPABASE BARU
-        msg.textContent = 'Masuk...';
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email: email,
-          password: pass,
-        });
+          // ensure Supabase SDK is initialized before calling auth
+          try{
+            await (window.__supabaseReady || Promise.resolve());
+          }catch(e){ console.error('Supabase init error (login):', e); }
+          if (!window.supabase) {
+            msg.textContent = 'SDK Supabase gagal dimuat. Cek koneksi atau console (see window.__supabaseInitError).';
+            console.warn('Supabase init error detail:', window.__supabaseInitError);
+            return;
+          }
 
-        if (error) {
-          msg.textContent = 'Email atau password salah.';
-          return;
-        }
+          // LOGIKA SUPABASE BARU
+          msg.textContent = 'Masuk...';
+          const { data, error } = await supabase.auth.signInWithPassword({
+            email: email,
+            password: pass,
+          });
 
-    // Login berhasil, Supabase menyimpan session di localStorage-nya sendiri
-    // set default landing tab to Beranda and redirect
-    try{ sessionStorage.setItem('pysphere_active_page','beranda'); }catch(e){}
-  window.location.href = '/PhySphere';
+          if (error) {
+            msg.textContent = 'Email atau password salah.';
+            console.error('Login error', error);
+            return;
+          }
+
+          // Login berhasil, Supabase menyimpan session di localStorage-nya sendiri
+          try{ sessionStorage.setItem('pysphere_active_page','beranda'); }catch(e){}
+          window.location.href = '/PhySphere';
       });
     })();
   </script>

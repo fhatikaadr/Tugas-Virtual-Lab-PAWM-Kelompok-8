@@ -60,6 +60,9 @@
         const msg = el('reg-msg'); msg.textContent = '';
         
         if(!email || !pass){ msg.textContent = 'Email dan password wajib diisi.'; return; }
+        // ensure Supabase SDK is initialized before using auth
+        try{ await (window.__supabaseReady || Promise.resolve()); }catch(e){ console.error('Supabase init error (register)', e); }
+        if (!window.supabase) { msg.textContent = 'SDK Supabase gagal dimuat. Cek console untuk detail.'; return; }
 
         // LOGIKA SUPABASE BARU
         msg.textContent = 'Mendaftarkan...';
