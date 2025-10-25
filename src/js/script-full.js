@@ -804,13 +804,20 @@ setTimeout(()=>{
   async function saveProgressToSupabase() {
     if (!user_id || !loaded) return; 
 
-    const { error } = await supabase
-      .from('profile') // <-- DIPERBAIKI
-      .update({ materi_progress: state }) 
-      .eq('id', user_id); 
+    try {
+      // Ensure we persist an object with all module keys explicitly set
+      // so other clients / UI can rely on presence of keys.
+      const payload = {};
+      MODULES.forEach(m => { payload[m] = !!state[m]; });
 
-    if (error) {
-      console.error("Error saving progress:", error.message);
+      const { error } = await supabase
+        .from('profile')
+        .update({ materi_progress: payload })
+        .eq('id', user_id);
+
+      if (error) console.error('Error saving progress:', error.message);
+    } catch (e) {
+      console.error('saveProgressToSupabase exception', e);
     }
   }
 
