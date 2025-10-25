@@ -38,12 +38,18 @@
     (function(){
       function el(id){return document.getElementById(id)}
 
-      // Cek apakah sudah login dengan Supabase
+      // Cek apakah sudah login dengan Supabase (tunggu inisialisasi client dulu)
       (async function() {
+        try {
+          await (window.__supabaseReady || Promise.resolve());
+        } catch(e) {
+          console.error('Supabase init error', e);
+        }
+        if (!window.supabase) return;
         const { data: { session } } = await supabase.auth.getSession();
         if (session) {
           // User sudah login, lempar ke halaman utama
-          window.location.href = 'PhySphere.html';
+          window.location.href = '/PhySphere';
         }
       })();
 
@@ -74,12 +80,38 @@
           return;
         }
 
-        // Jika berhasil, Supabase otomatis login (asumsi konfirmasi email dimatikan)
-        msg.textContent = 'Registrasi berhasil! Mengarahkan...';
+        // Jika ada error server-side, tampilkan
+        msg.textContent = '';
 
-        // Trigger di Tahap 1 akan otomatis membuat profilnya.
-        // Kita tinggal redirect ke halaman utama.
-        window.location.href = 'PhySphere.html';
+        // Supabase may require email confirmation. If a user object is
+        // returned immediately we can create a profile row client-side.
+        const newUser = data?.user || (data?.session && data.session.user) || null;
+        if (!newUser) {
+          // No immediate user (likely requires email confirmation)
+          msg.textContent = 'Registrasi berhasil. Silakan cek email untuk konfirmasi sebelum masuk.';
+          return;
+        }
+
+        // Buat/memperbarui profile client-side (safe upsert). This avoids
+        // needing a DB trigger and works when RLS allows authenticated inserts.
+        try {
+          const up = await supabase.from('profile').upsert({
+            id: newUser.id,
+            full_name: name,
+            materi_progress: 0,
+            updated_at: new Date().toISOString()
+          }, { onConflict: 'id' });
+          if (up.error) {
+            console.warn('Profile upsert error', up.error);
+            // Non-fatal: continue to redirect even if profile creation failed
+          }
+        } catch(e) {
+          console.warn('Profile upsert exception', e);
+        }
+
+        msg.textContent = 'Registrasi berhasil! Mengarahkan...';
+        // Redirect to main (use absolute route so rewrites work)
+        window.location.href = '/PhySphere';
       });
     })();
   </script>

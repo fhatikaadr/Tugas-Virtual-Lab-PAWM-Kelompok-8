@@ -201,20 +201,20 @@
                   <div class="text-sm text-slate-500">Superadmin • 9 March 2023 • 10 Minute Read</div>
                 </header>
 
-                <section>
-                  <h4>Ringkasan</h4>
-                  <p>Gerak Harmonik Sederhana (GHS) adalah gerak periodik bolak-balik di sekitar titik kesetimbangan yang dapat dianalisis secara matematis menggunakan fungsi sinus/ cosinus. Contoh: bandul dan pegas.</p>
-                </section>
-
-                <section>
-                  <h4>Faktor yang Mempengaruhi</h4>
-                  <ul>
-                    <li><strong>Massa (m)</strong> — Semakin besar massa, periode umumnya bertambah (T ↑).</li>
-                    <li><strong>Konstanta Pegas (k)</strong> — Semakin k besar, periode berkurang (T ↓).</li>
-                    <li><strong>Amplitudo (A)</strong> — Pada GHS ideal periode tidak bergantung kuat pada A untuk amplitudo kecil.</li>
-                    <li><strong>Gaya Gesek</strong> — Dapat meredam gerakan dan mengubah periode/energi jika signifikan.</li>
-                  </ul>
-                </section>
+                <script>
+                  (function(){
+                    // Ensure the Supabase client is initialized before using auth APIs.
+                    (async function() {
+                      try {
+                        await (window.__supabaseReady || Promise.resolve());
+                      } catch(e) {
+                        console.error('Supabase init error', e);
+                      }
+                      // If supabase failed to initialize we silently continue;
+                      // this script only guards against using auth APIs too early.
+                    })();
+                  })();
+                </script>
 
                 <section>
                   <h4>Analisis Singkat</h4>

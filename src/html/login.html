@@ -35,8 +35,14 @@
     (function(){
       function el(id){return document.getElementById(id)}
       
-      // Cek apakah sudah login dengan Supabase
+      // Cek apakah sudah login dengan Supabase (tunggu inisialisasi client dulu)
       (async function() {
+        try {
+          await (window.__supabaseReady || Promise.resolve());
+        } catch(e) {
+          console.error('Supabase init error', e);
+        }
+        if (!window.supabase) return;
         const { data: { session } } = await supabase.auth.getSession();
         if (session) {
           // User sudah login, lempar ke halaman utama
