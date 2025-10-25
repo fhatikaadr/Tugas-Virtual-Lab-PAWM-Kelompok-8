@@ -1,8 +1,8 @@
 {
   "rewrites": [
-    { "source": "/", "destination": "/html/index.html" },
-    { "source": "/login", "destination": "/html/login.html" },
-    { "source": "/register", "destination": "/html/register.html" },
-    { "source": "/PhySphere", "destination": "/html/PhySphere.html" }
+    { "source": "/", "destination": "/src/html/index.html" },
+    { "source": "/login", "destination": "/src/html/login.html" },
+    { "source": "/register", "destination": "/src/html/register.html" },
+    { "source": "/PhySphere", "destination": "/src/html/PhySphere.html" }
   ]
 }
