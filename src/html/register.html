@@ -101,7 +101,8 @@
             id: newUser.id,
             full_name: name,
             email: email,
-            materi_progress: 0,
+            // Set initial materi_progress to the desired object (all modules marked true)
+            materi_progress: { "ghs": true, "pegas": true, "bandul": true, "getaran": true },
             updated_at: new Date().toISOString()
           }, { onConflict: 'id' });
           if (up.error) {
