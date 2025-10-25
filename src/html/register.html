@@ -102,11 +102,17 @@
             updated_at: new Date().toISOString()
           }, { onConflict: 'id' });
           if (up.error) {
-            console.warn('Profile upsert error', up.error);
-            // Non-fatal: continue to redirect even if profile creation failed
+            console.error('Profile upsert error', up.error);
+            msg.textContent = 'Error: ' + (up.error.message || 'Database error saving new user');
+            // Still allow redirect (user account created) but warn in UI
+            setTimeout(()=>{ try{ window.location.href = '/PhySphere'; }catch(e){} }, 1600);
+            return;
           }
         } catch(e) {
-          console.warn('Profile upsert exception', e);
+          console.error('Profile upsert exception', e);
+          msg.textContent = 'Error: ' + (e.message || String(e));
+          setTimeout(()=>{ try{ window.location.href = '/PhySphere'; }catch(e){} }, 1600);
+          return;
         }
 
         msg.textContent = 'Registrasi berhasil! Mengarahkan...';
