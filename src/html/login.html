@@ -22,12 +22,12 @@
 
       <div class="mt-4 flex gap-2">
         <button id="login-submit" class="vlab-button bg-blue-600 text-white">Masuk</button>
-        <a href="index.html" class="vlab-button bg-white border">Kembali</a>
+  <a href="/" class="vlab-button bg-white border">Kembali</a>
       </div>
 
-      <div id="login-msg" class="text-sm text-red-500 mt-3"></div>
-      <hr class="my-4">
-      <div class="text-sm text-slate-600">Belum punya akun? <a href="register.html" class="text-blue-600 font-semibold">Daftar</a></div>
+  <div id="login-msg" class="text-sm text-red-500 mt-3"></div>
+  <hr class="my-4">
+  <div class="text-sm text-slate-600">Belum punya akun? <a href="/register" class="text-blue-600 font-semibold">Daftar</a></div>
     </div>
   </div>
 
@@ -40,7 +40,7 @@
         const { data: { session } } = await supabase.auth.getSession();
         if (session) {
           // User sudah login, lempar ke halaman utama
-          window.location.href = 'PhySphere.html';
+          window.location.href = '/PhySphere';
         }
       })();
 
@@ -65,8 +65,8 @@
         }
 
         // Login berhasil, Supabase menyimpan session di localStorage-nya sendiri
-        // Redirect to main
-        window.location.href = 'PhySphere.html';
+  // Redirect to main
+  window.location.href = '/PhySphere';
       });
     })();
   </script>
