@@ -431,7 +431,8 @@ window.renderCompletedResults = async function(){
   }catch(e){ console.warn('renderCompletedResults failed', e); }
 };
 
-setTimeout(()=>{ try{ window.renderCompletedResults(); }catch(e){} }, 300);
+// --- render/update calls will be invoked after Supabase is ready ---
+// (removed immediate timeout-based invocations; we'll call these after init)
 
 // --- ...DENGAN FUNGSI BARU (ASYNC) INI ---
 window.updateTopicUI = async function(topic){
@@ -469,7 +470,8 @@ window.updateTopicUI = async function(topic){
   }catch(e){ console.warn('updateTopicUI failed', e); }
 };
 
-TOPICS.forEach(t=> setTimeout(()=>{ try{ window.updateTopicUI(t); }catch(e){} }, 200));
+// NOTE: initial calls to `renderCompletedResults` and `updateTopicUI` are
+// performed after the Supabase client is ready. See module init below.
 
 // Interactive V-Lab simulation
 (function(){
@@ -765,7 +767,14 @@ setTimeout(()=>{
 })();
 
 // --- GANTI BLOK FUNGSI MODUL LAMA DENGAN INI ---
-(function(){
+(async function(){
+  // Wait for Supabase client to initialize before performing actions
+  try{
+    await (window.__supabaseReady || Promise.resolve());
+  }catch(e){
+    console.warn('Supabase init failed in module init', e);
+  }
+
   const MODULES = ['getaran','ghs','bandul','pegas'];
   let state = {}; // Ini akan menyimpan progress, misal: {"getaran": true}
   let loaded = false; // Flag agar tidak double-load
@@ -883,8 +892,15 @@ setTimeout(()=>{
   });
 
   // --- MEMUAT DATA SAAT HALAMAN DIBUKA ---
-  // Panggil fungsi load baru kita
-  loadProgressFromSupabase();
+  // Panggil fungsi load baru kita (safely after supabase is ready)
+  try{
+    await loadProgressFromSupabase();
+  }catch(e){ console.warn('loadProgressFromSupabase failed at init', e); }
+
+  // After loading progress, render completed quiz results and per-topic UI
+  try{ if(window.renderCompletedResults) await window.renderCompletedResults(); }catch(e){ console.warn('renderCompletedResults failed', e); }
+  try{ MODULES.forEach(t => { if(window.updateTopicUI) window.updateTopicUI(t); }); }catch(e){ console.warn('updateTopicUI initial calls failed', e); }
+
 })();
 
 // --- GANTI BLOK FUNGSI LOGIN/REGISTER LAMA DENGAN INI ---
