@@ -883,8 +883,8 @@ setTimeout(()=>{
   });
 
   // --- MEMUAT DATA SAAT HALAMAN DIBUKA ---
-  // Panggil fungsi load baru kita
-  loadProgressFromSupabase();
+  // Panggil fungsi load baru kita -- defer until Supabase client is ready
+  // (we'll initialize Supabase-dependent calls in a single async init below)
 })();
 
 // --- GANTI BLOK FUNGSI LOGIN/REGISTER LAMA DENGAN INI ---
@@ -1046,6 +1046,18 @@ setTimeout(()=>{
     window.location.href = '/'; 
   });
 
-  // initialize profile view on load
-  window.addEventListener('DOMContentLoaded', showProfileView);
+  // initialize Supabase-dependent pieces after the SDK is ready
+  (async function initSupabaseDependent(){
+    try{
+      await (window.__supabaseReady || Promise.resolve());
+    }catch(e){
+      console.warn('supabase init failed or timed out', e);
+    }
+
+    try{ if(typeof loadProgressFromSupabase === 'function') await loadProgressFromSupabase(); }catch(e){ console.warn('loadProgressFromSupabase failed', e); }
+    try{ if(typeof showProfileView === 'function') await showProfileView(); }catch(e){ console.warn('showProfileView failed', e); }
+
+    // re-attach DOMContentLoaded fallback in case consumers expect it
+    try{ window.dispatchEvent(new Event('supabase-ready')); }catch(e){}
+  })();
 })();

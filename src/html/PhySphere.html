@@ -3,14 +3,27 @@
 <head>
   <script src="/src/js/supabase-client.js"></script>
     <script>
-      // AUTHENTICATION GUARD
+      // AUTHENTICATION GUARD - wait for Supabase client to initialize first
       (async function() {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) {
-          // User BELUM login, paksa kembali ke halaman login
-          window.location.href = 'login.html';
+        try{
+          await (window.__supabaseReady || Promise.resolve());
+        }catch(e){ console.warn('Supabase init error in auth guard', e); }
+
+        if (!window.supabase) {
+          // If SDK failed to load, let the page continue and surface errors in console.
+          console.warn('Supabase SDK not available in auth guard');
+          return;
         }
-        // Jika ada session, biarkan halaman dimuat
+
+        try{
+          const { data: { session } } = await supabase.auth.getSession();
+          if (!session) {
+            // User BELUM login, paksa kembali ke halaman login
+            window.location.href = 'login.html';
+          }
+        }catch(e){
+          console.warn('Error checking session in auth guard', e);
+        }
       })();
     </script>
   <meta charset="utf-8" />
