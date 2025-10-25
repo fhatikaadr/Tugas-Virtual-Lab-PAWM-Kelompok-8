@@ -47,15 +47,27 @@ function _initSupabaseClient(){
 				document.head.appendChild(s);
 			});
 
-			// Try local file first, then CDN.
-			tryScript('/src/js/supabase.min.js')
-				.catch(() => tryScript('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/supabase.min.js'))
-				.then(resolve)
-				.catch((err) => {
-					// Attach error to a global for debugging and reject.
-					window.__supabaseInitError = err && err.message ? err.message : String(err);
-					reject(err);
-				});
+				// Try local file first, then CDN UMD. If both fail, attempt dynamic ESM import
+				// from the CDN (some CDN paths/versions vary; +esm can provide a module build).
+				tryScript('/src/js/supabase.min.js')
+					.catch(() => tryScript('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/supabase.min.js'))
+					.catch(() => {
+						// As a last resort attempt dynamic ESM import from jsdelivr (+esm).
+						return import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm')
+							.then((m) => {
+								if (m && typeof m.createClient === 'function') {
+									window.supabase = m.createClient(SUPABASE_URL, SUPABASE_KEY);
+									return window.supabase;
+								}
+								throw new Error('ESM import succeeded but createClient not found');
+							});
+					})
+					.then(resolve)
+					.catch((err) => {
+						// Attach error to a global for debugging and reject.
+						window.__supabaseInitError = err && err.message ? err.message : String(err);
+						reject(err);
+					});
 		});
 }
 
