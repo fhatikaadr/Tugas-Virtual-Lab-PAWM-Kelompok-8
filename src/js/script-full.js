@@ -1041,8 +1041,9 @@ setTimeout(()=>{
   // --- LOGOUT BARU ---
   if(logoutBtn) logoutBtn.addEventListener('click', async ()=>{
     await supabase.auth.signOut();
-    // Redirect ke halaman login setelah logout
-    window.location.href = 'login.html'; 
+    // Clear stored active page and redirect ke halaman index setelah logout
+    try{ sessionStorage.removeItem('pysphere_active_page'); }catch(e){}
+    window.location.href = '/'; 
   });
 
   // initialize profile view on load
