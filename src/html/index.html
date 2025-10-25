@@ -7,36 +7,16 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="/src/css/style.css">
 </head>
-</body>
 <body class="min-h-screen flex items-center justify-center bg-gradient-to-b from-purple-50 to-yellow-50">
-  <div class="max-w-2xl w-full p-6">
-    <div class="card flex flex-col md:flex-row items-center gap-6">
-      <div class="flex-shrink-0">
-        <img src="/src/img/logo%20PhySphere.png" alt="PhySphere Logo" class="auth-logo w-28 h-auto">
+  <div class="max-w-md w-full p-6">
+    <div class="card text-center">
+      <h1 class="text-2xl font-bold text-purple-800 mb-4">Selamat datang di PhySphere</h1>
+      <p class="text-slate-600 mb-6">Masuk untuk melanjutkan ke simulasi dan kuis interaktif.</p>
+      <div class="flex gap-4 justify-center">
+        <a href="/login" class="vlab-button bg-blue-600 text-white px-6 py-2 rounded-md">Login</a>
+        <a href="/register" class="vlab-button bg-white border px-6 py-2 rounded-md">Register</a>
       </div>
-      <div class="flex-1 text-center md:text-left">
-        <h1 class="text-3xl font-bold text-purple-800">Selamat datang di <span class="text-indigo-600">PhySphere</span></h1>
-        <p class="text-slate-600 mt-2">Platform pembelajaran interaktif untuk Gerak Harmonik Sederhana — simulasi, kuis, dan materi ringkas.</p>
-        <div class="mt-4 flex gap-4 justify-center md:justify-start">
-          <a href="/login" class="vlab-button bg-blue-600 text-white px-6 py-2 rounded-md">Login</a>
-          <a href="/register" class="vlab-button bg-white border px-6 py-2 rounded-md">Daftar</a>
-        </div>
-        <div class="mt-3 text-sm text-slate-500">Anda akan diarahkan otomatis jika sudah masuk.</div>
-      </div>
-    </div>
-    <div class="mt-6 grid md:grid-cols-3 gap-4">
-      <div class="bg-white rounded-2xl shadow p-6">
-        <h4 class="font-semibold text-slate-800 mb-2">Simulasi Interaktif</h4>
-        <p class="text-slate-600">Ubah parameter dan amati gerak secara real-time di PhySphere Lab.</p>
-      </div>
-      <div class="bg-white rounded-2xl shadow p-6">
-        <h4 class="font-semibold text-slate-800 mb-2">Kuis & Riwayat</h4>
-        <p class="text-slate-600">Ikuti kuis, simpan riwayat, dan lihat nilai terbaik di profil.</p>
-      </div>
-      <div class="bg-white rounded-2xl shadow p-6">
-        <h4 class="font-semibold text-slate-800 mb-2">Referensi Ringkas</h4>
-        <p class="text-slate-600">Ringkasan rumus dan konsep untuk setiap topik.</p>
-      </div>
+      <div class="mt-6 text-sm text-slate-500">Jika sudah login, Anda akan diarahkan otomatis ke halaman utama.</div>
     </div>
   </div>
 </body>

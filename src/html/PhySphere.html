@@ -34,8 +34,8 @@
   <div class="max-w-7xl mx-auto p-6">
     <header class="flex items-center justify-between mb-6">
       <div class="flex items-center gap-4">
-  <!-- Logo (use absolute path to ensure it loads under rewrites) -->
-  <img src="/src/img/logo%20PhySphere.png" alt="PhySphere Logo" class="h-20 w-auto object-contain">
+        <!-- Use relative path to img folder; space in filename is URL-encoded -->
+        <img src="../img/logo%20PhySphere.png" alt="PhySphere Logo" class="h-20 w-auto object-contain">
         <div>
           <h1 class="text-2xl font-bold text-purple-800">Gerak Harmonik Sederhana</h1>
           <p class="text-sm text-purple-500">Simulasi, kuis, dan materi fisika.</p>
@@ -79,7 +79,7 @@
             </div>
             <div class="md:w-1/3 mt-6 md:mt-0">
               <div class="bg-white/20 rounded-xl p-4">
-                <img src="/src/img/logo%20PhySphere.png" alt="PhySphere" class="mx-auto mb-3 w-32 opacity-95" />
+                <img src="../img/logo%20PhySphere.png" alt="PhySphere" class="mx-auto mb-3 w-32 opacity-95" />
                 <div class="text-center text-sm">Mulai jelajahi modul atau langsung coba kuis untuk menguji pemahamanmu.</div>
               </div>
             </div>
@@ -479,67 +479,32 @@
         </div>
       </section>
 
-      <!-- PROFILE improved -->
+      <!-- PROFILE simple -->
       <section id="profile-page" class="page hidden card mt-6">
         <h2 class="text-lg font-bold">Profil</h2>
-        <p id="profile-hint" class="text-sm text-slate-500">Lihat profil, nilai terbaik, dan riwayat kuis Anda di sini.</p>
-
-        <div id="profile-content" class="mt-4 grid md:grid-cols-3 gap-4">
-          <div id="profile-sidebar" class="md:col-span-1 p-4 bg-white rounded-xl border">
-            <div id="not-logged" class="text-center">
-              <p class="text-sm text-slate-700 mb-3">Anda belum masuk.</p>
-              <div class="flex justify-center gap-2">
-                <button id="btn-open-login" class="vlab-button bg-blue-600 text-white">Login</button>
-                <button id="btn-open-register" class="vlab-button bg-white border">Register</button>
-              </div>
-            </div>
-
-            <div id="logged-in" class="hidden">
-              <div class="flex items-center gap-4">
-                <div class="w-20 h-20 bg-gradient-to-br from-purple-200 to-indigo-200 rounded-full flex items-center justify-center text-white text-xl font-bold" id="profile-avatar">U</div>
-                <div>
-                  <h3 id="profile-name" class="font-semibold text-lg">Nama Pengguna</h3>
-                  <div id="profile-email" class="text-sm text-slate-600">email@example.com</div>
-                </div>
-              </div>
-              <div class="mt-4">
-                <button id="btn-logout" class="vlab-button bg-red-500 text-white">Logout</button>
-              </div>
+        <p id="profile-hint" class="text-sm text-slate-500">Masuk untuk melihat riwayat skor dan pengaturan akun.</p>
+        <div id="profile-content" class="mt-4">
+          <div id="not-logged" class="p-4 bg-white rounded-xl border">
+            <p class="text-sm text-slate-700 mb-3">Anda belum masuk.</p>
+            <div class="flex gap-2">
+              <button id="btn-open-login" class="vlab-button bg-blue-600 text-white">Login</button>
+              <button id="btn-open-register" class="vlab-button bg-white border">Register</button>
             </div>
           </div>
-
-          <div class="md:col-span-2 space-y-4">
-            <div class="grid grid-cols-2 gap-4">
-              <div class="p-4 bg-white rounded-xl border">
-                <h4 class="font-semibold">Nilai Tertinggi</h4>
-                <div id="profile-best-scores" class="mt-3 grid grid-cols-2 gap-3 text-sm text-slate-700">(Belum ada data)</div>
-              </div>
-              <div class="p-4 bg-white rounded-xl border">
-                <h4 class="font-semibold">Statistik Singkat</h4>
-                <div class="mt-3 text-sm text-slate-700">
-                  <div>Jumlah Kuis Diselesaikan: <span id="stat-quizzes">0</span></div>
-                  <div>Skor Rata-rata: <span id="stat-average">0</span></div>
-                </div>
-              </div>
+          <div id="logged-in" class="p-4 bg-white rounded-xl border hidden">
+            <h3 id="profile-name" class="font-semibold text-lg">Nama Pengguna</h3>
+            <div class="text-sm text-slate-600" id="profile-email">email@example.com</div>
+            <div class="mt-4">
+              <button id="btn-logout" class="vlab-button bg-red-500 text-white">Logout</button>
             </div>
-
-            <div class="p-4 bg-white rounded-xl border">
+            <!-- Best scores and history placeholders -->
+            <div class="mt-6">
+              <h4 class="font-semibold">Nilai Tertinggi per Kuis</h4>
+              <div id="profile-best-scores" class="mt-2 text-sm text-slate-700">(Belum ada data)</div>
+            </div>
+            <div class="mt-6">
               <h4 class="font-semibold">Riwayat Percobaan Kuis</h4>
-              <div class="mt-3 overflow-x-auto">
-                <table class="w-full text-sm">
-                  <thead>
-                    <tr class="text-left text-slate-600">
-                      <th class="pb-2">Waktu</th>
-                      <th class="pb-2">Topik</th>
-                      <th class="pb-2">Skor</th>
-                      <th class="pb-2">Aksi</th>
-                    </tr>
-                  </thead>
-                  <tbody id="profile-quiz-history" class="text-slate-700">
-                    <tr><td colspan="4" class="py-3 text-sm text-slate-500">Belum ada data</td></tr>
-                  </tbody>
-                </table>
-              </div>
+              <div id="profile-quiz-history" class="mt-2 text-sm text-slate-700">(Belum ada data)</div>
             </div>
           </div>
         </div>
