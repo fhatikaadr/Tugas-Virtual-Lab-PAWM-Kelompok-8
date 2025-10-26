@@ -862,7 +862,8 @@ setTimeout(()=>{
       }
       // Merge any locally stored progress (wins over DB until flushed)
       try{
-        const localRaw = localStorage.getItem('pysphere_materi_progress_local_v1');
+        const lpKey = localProgressKey(user_id);
+        const localRaw = localStorage.getItem(lpKey);
         if(localRaw){
           const localObj = JSON.parse(localRaw);
           if(localObj && typeof localObj === 'object'){
@@ -874,7 +875,7 @@ setTimeout(()=>{
               if(typeof supabase !== 'undefined' && user_id){
                 // attempt to save; if succeeds, remove local copy
                 const saved = await saveProgressToSupabase();
-                if(saved) localStorage.removeItem('pysphere_materi_progress_local_v1');
+                if(saved) localStorage.removeItem(lpKey);
               }
             }catch(e){ /* ignore flush failure; queue exists */ }
           }
@@ -950,7 +951,9 @@ setTimeout(()=>{
 
   // --- LOCAL QUEUE FALLBACK ---
   const QUEUE_KEY = 'pysphere_progress_queue_v1';
-  const LOCAL_PROGRESS_KEY = 'pysphere_materi_progress_local_v1';
+  // Build a per-user local progress key. If userId is falsy, use ':anon' suffix.
+  function localProgressKey(uid){ return 'pysphere_materi_progress_local_v1' + (uid ? (':' + uid) : ':anon'); }
+
   function enqueueProgress(payload){
     try{
       const q = JSON.parse(localStorage.getItem(QUEUE_KEY) || '[]');
@@ -1051,18 +1054,11 @@ setTimeout(()=>{
     showModule(MODULES[0]);
   })();
 
-  // If there's locally stored materi_progress (not yet flushed), apply it so UI reflects user's actions immediately
-  try{
-    const localRaw = localStorage.getItem('pysphere_materi_progress_local_v1');
-    if(localRaw){
-      const localObj = JSON.parse(localRaw);
-      if(localObj && typeof localObj === 'object'){
-        MODULES.forEach(m => { state[m] = !!localObj[m]; });
-        updateProgressUI();
-        refreshButtons();
-      }
-    }
-  }catch(e){ /* ignore */ }
+  // NOTE: Do not apply global/local progress before knowing which user is active.
+  // Applying a shared local copy caused progress from one account to appear when
+  // another account logged in on the same browser. We now persist local progress
+  // per-user (keyed with the user id) and only merge the correct per-user local
+  // copy inside loadProgressFromSupabase() when the currently logged-in user is known.
 
   // --- LOGIKA KLIK TOMBOL (DIMODIFIKASI) ---
   document.querySelectorAll('.mark-read').forEach(btn=>{
@@ -1079,7 +1075,7 @@ setTimeout(()=>{
       // Build normalized payload and persist immediately to localStorage
       const payload = {};
       MODULES.forEach(m => { payload[m] = !!state[m]; });
-      try{ localStorage.setItem(LOCAL_PROGRESS_KEY, JSON.stringify(payload)); }catch(e){/* ignore */}
+  try{ const lpKey = localProgressKey(user_id); localStorage.setItem(lpKey, JSON.stringify(payload)); }catch(e){/* ignore */}
 
       // If supabase/client not available or saving fails, enqueue locally (we still have local copy)
       if (typeof supabase === 'undefined' || !user_id) {
@@ -1090,7 +1086,7 @@ setTimeout(()=>{
           if (!ok) {
             enqueueProgress(payload);
           } else {
-            try{ localStorage.removeItem(LOCAL_PROGRESS_KEY); }catch(_){/* ignore */}
+            try{ const lpKey = localProgressKey(user_id); localStorage.removeItem(lpKey); }catch(_){/* ignore */}
           }
         }catch(e){
           console.warn('saveProgress failed, enqueueing', e);
