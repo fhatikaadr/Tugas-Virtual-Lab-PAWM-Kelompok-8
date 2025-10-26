@@ -474,10 +474,13 @@ window.updateTopicUI = async function(topic){
   try{
     const resultEl = document.getElementById('result-'+topic);
     if (!resultEl) return;
-    // Ensure Supabase client is ready before calling any auth/db APIs
-    if (typeof supabase === 'undefined') {
+    // Ensure Supabase client & auth API are ready before calling
+    if (!supabase || !supabase.auth || typeof supabase.auth.getUser !== 'function') {
       try { await (window.__supabaseReady || Promise.resolve()); } catch(e) { console.warn('supabase init failed in updateTopicUI', e); }
-      if (typeof supabase === 'undefined') { console.warn('supabase still undefined in updateTopicUI'); return; }
+    }
+    if (!supabase || !supabase.auth || typeof supabase.auth.getUser !== 'function') {
+      console.warn('supabase.auth.getUser not available in updateTopicUI; skipping');
+      return;
     }
 
     // Ambil data skor dari database
@@ -857,6 +860,26 @@ setTimeout(()=>{
       } else {
         state = {};
       }
+      // Merge any locally stored progress (wins over DB until flushed)
+      try{
+        const localRaw = localStorage.getItem('pysphere_materi_progress_local_v1');
+        if(localRaw){
+          const localObj = JSON.parse(localRaw);
+          if(localObj && typeof localObj === 'object'){
+            MODULES.forEach(m => {
+              if(Object.prototype.hasOwnProperty.call(localObj, m)) state[m] = !!localObj[m];
+            });
+            // Try to persist merged local -> server immediately if possible
+            try{
+              if(typeof supabase !== 'undefined' && user_id){
+                // attempt to save; if succeeds, remove local copy
+                const saved = await saveProgressToSupabase();
+                if(saved) localStorage.removeItem('pysphere_materi_progress_local_v1');
+              }
+            }catch(e){ /* ignore flush failure; queue exists */ }
+          }
+        }
+      }catch(e){ /* ignore local parse errors */ }
       // If the stored value was empty (no keys), persist a default object
       const hasAnyKey = Object.keys(mp || {}).length > 0;
       if (!hasAnyKey) {
@@ -927,6 +950,7 @@ setTimeout(()=>{
 
   // --- LOCAL QUEUE FALLBACK ---
   const QUEUE_KEY = 'pysphere_progress_queue_v1';
+  const LOCAL_PROGRESS_KEY = 'pysphere_materi_progress_local_v1';
   function enqueueProgress(payload){
     try{
       const q = JSON.parse(localStorage.getItem(QUEUE_KEY) || '[]');
@@ -946,14 +970,19 @@ setTimeout(()=>{
       console.debug('flushProgressQueue: attempting to flush', q.length, 'items');
       for(const item of q){
         try{
-          // Only flush items for current user (others may belong to other sessions)
-          if(!item || !item.user_id || item.user_id !== user_id) continue;
+          if(!item) continue;
+          // If item has explicit user_id and it's for another user, skip it.
+          if(item.user_id && item.user_id !== user_id) continue;
+          // targetUser: if queued item had no user_id (anonymous), associate it with current user_id
+          const targetUser = item.user_id || user_id;
+          if(!targetUser) continue; // still no user id available
+
           // try both candidate tables
           const tables = ['profile','profiles'];
           let ok=false;
           for(const tbl of tables){
             try{
-              const up = await supabase.from(tbl).upsert({ id: item.user_id, materi_progress: item.payload }, { onConflict: 'id' }).select();
+              const up = await supabase.from(tbl).upsert({ id: targetUser, materi_progress: item.payload }, { onConflict: 'id' }).select();
               if(!up.error){ console.debug('flushProgressQueue upsert ok on', tbl, up.data); ok=true; break; }
             }catch(e){ console.debug('flushProgressQueue upsert failed on', tbl, e); }
           }
@@ -1022,6 +1051,19 @@ setTimeout(()=>{
     showModule(MODULES[0]);
   })();
 
+  // If there's locally stored materi_progress (not yet flushed), apply it so UI reflects user's actions immediately
+  try{
+    const localRaw = localStorage.getItem('pysphere_materi_progress_local_v1');
+    if(localRaw){
+      const localObj = JSON.parse(localRaw);
+      if(localObj && typeof localObj === 'object'){
+        MODULES.forEach(m => { state[m] = !!localObj[m]; });
+        updateProgressUI();
+        refreshButtons();
+      }
+    }
+  }catch(e){ /* ignore */ }
+
   // --- LOGIKA KLIK TOMBOL (DIMODIFIKASI) ---
   document.querySelectorAll('.mark-read').forEach(btn=>{
     // Use a capturing handler and stop other listeners so the lightweight
@@ -1034,23 +1076,28 @@ setTimeout(()=>{
       state[mod] = !state[mod]; // Update state lokal
       updateProgressUI();      // Update UI
       refreshButtons();        // Update tombol
-      // Build normalized payload
+      // Build normalized payload and persist immediately to localStorage
       const payload = {};
       MODULES.forEach(m => { payload[m] = !!state[m]; });
+      try{ localStorage.setItem(LOCAL_PROGRESS_KEY, JSON.stringify(payload)); }catch(e){/* ignore */}
 
-      // If supabase/client not available or saving fails, enqueue locally
+      // If supabase/client not available or saving fails, enqueue locally (we still have local copy)
       if (typeof supabase === 'undefined' || !user_id) {
         enqueueProgress(payload);
       } else {
         try{
           const ok = await saveProgressToSupabase();
-          if (!ok) enqueueProgress(payload);
+          if (!ok) {
+            enqueueProgress(payload);
+          } else {
+            try{ localStorage.removeItem(LOCAL_PROGRESS_KEY); }catch(_){/* ignore */}
+          }
         }catch(e){
           console.warn('saveProgress failed, enqueueing', e);
           enqueueProgress(payload);
         }
       }
-    }, { passive: true });
+  }, { passive: true, capture: true });
   });
 
   // --- MEMUAT DATA SAAT HALAMAN DIBUKA ---
