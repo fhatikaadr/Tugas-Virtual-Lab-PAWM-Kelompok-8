@@ -1,4 +1,6 @@
 // PhySphere - Full Script (extracted and adapted from original)
+// Global default for materi_progress so all scopes can access it
+try{ window.DEFAULT_MATERI_PROGRESS = window.DEFAULT_MATERI_PROGRESS || { ghs:false, pegas:false, bandul:false, getaran:false }; }catch(e){ var DEFAULT_MATERI_PROGRESS = { ghs:false, pegas:false, bandul:false, getaran:false }; }
 // --- NAVIGATION ---
 document.querySelectorAll('.tab-button').forEach(btn=>btn.addEventListener('click',()=>{
   // If user tries to open the VLab, block access until materi progress reaches 100%
