@@ -1128,7 +1128,10 @@ setTimeout(()=>{
       const profileData = fetchedProfile && fetchedProfile.data ? fetchedProfile.data : null;
       if(fetchedProfile && fetchedProfile.error) console.debug('showProfileView: profile fetch error', fetchedProfile.error);
 
-      let displayName = (profileData && profileData.full_name) ? profileData.full_name : user.email;
+  // Prefer full_name from the app's profile table; fall back to OAuth metadata (Google name), then email
+  let displayName = (profileData && profileData.full_name) ? profileData.full_name :
+        (user && user.user_metadata && (user.user_metadata.full_name || user.user_metadata.name)) ||
+        user.email;
 
       el('profile-name').textContent = displayName;
       el('profile-email').textContent = user.email || '';
@@ -1269,10 +1272,51 @@ setTimeout(()=>{
       console.warn('supabase init failed or timed out', e);
     }
 
-  try{ if(typeof loadProgressFromSupabase === 'function') await loadProgressFromSupabase(); }catch(e){ console.warn('loadProgressFromSupabase failed', e); }
-  // Attempt to flush any locally queued progress for this user
-  try{ if(typeof flushProgressQueue === 'function') await flushProgressQueue(); }catch(e){ console.warn('flushProgressQueue failed', e); }
-  try{ if(typeof showProfileView === 'function') await showProfileView(); }catch(e){ console.warn('showProfileView failed', e); }
+    // If user logged in via OAuth (Google), ensure their name from OAuth metadata
+    // is saved into the app's profile table so the UI shows the correct display name.
+    async function upsertProfileFromOAuth(){
+      try{
+        if(!supabase || !supabase.auth) return;
+        const { data: { user } } = await supabase.auth.getUser();
+        if(!user) return;
+
+        // try to read friendly name from OAuth metadata (common fields)
+        const meta = user.user_metadata || {};
+        const oauthName = meta.full_name || meta.name || meta.user_name || null;
+        if(!oauthName) return; // nothing to write
+
+        // Check if profile already has a full_name saved
+        try{
+          const fetched = await fetchProfileRow(user.id, 'full_name');
+          if(fetched && fetched.data && fetched.data.full_name){
+            // already present, nothing to do
+            return;
+          }
+        }catch(e){ /* ignore and attempt upsert anyway */ }
+
+        // Build payload; include email as well to be helpful for DB
+        const payload = { id: user.id, full_name: oauthName, email: user.email || null };
+        const tables = ['profiles','profile'];
+        for(const tbl of tables){
+          try{
+            const { error, data } = await supabase.from(tbl).upsert(payload, { onConflict: 'id' }).select();
+            if(!error){
+              console.debug('upsertProfileFromOAuth: upserted into', tbl, data);
+              return;
+            } else {
+              console.debug('upsertProfileFromOAuth: upsert error on', tbl, error.message || error);
+            }
+          }catch(e){ console.debug('upsertProfileFromOAuth: exception upserting on', tbl, e); }
+        }
+      }catch(e){ console.warn('upsertProfileFromOAuth failed', e); }
+    }
+
+    try{ if(typeof upsertProfileFromOAuth === 'function') await upsertProfileFromOAuth(); }catch(e){ console.warn('upsertProfileFromOAuth failed', e); }
+
+    try{ if(typeof loadProgressFromSupabase === 'function') await loadProgressFromSupabase(); }catch(e){ console.warn('loadProgressFromSupabase failed', e); }
+    // Attempt to flush any locally queued progress for this user
+    try{ if(typeof flushProgressQueue === 'function') await flushProgressQueue(); }catch(e){ console.warn('flushProgressQueue failed', e); }
+    try{ if(typeof showProfileView === 'function') await showProfileView(); }catch(e){ console.warn('showProfileView failed', e); }
 
     // re-attach DOMContentLoaded fallback in case consumers expect it
     try{ window.dispatchEvent(new Event('supabase-ready')); }catch(e){}
