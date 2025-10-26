@@ -823,7 +823,7 @@ setTimeout(()=>{
 
 // --- FUNGSI BARU: Menyimpan progress ke Supabase ---
   async function saveProgressToSupabase() {
-    if (!user_id || !loaded) return; 
+    if (!user_id || !loaded) return false; 
 
     try {
       // Ensure we persist an object with all module keys explicitly set
@@ -834,32 +834,70 @@ setTimeout(()=>{
       console.debug('saveProgressToSupabase: user_id=', user_id, 'payload=', payload);
 
       // Try update first (most common). If no rows were updated, fall back to upsert.
-      const upd = await supabase
+      const { error: updError, data: updData } = await supabase
         .from('profile')
         .update({ materi_progress: payload })
         .eq('id', user_id)
         .select();
 
-      if (upd.error) {
-        console.warn('saveProgress update error', upd.error);
+      if (updError) {
+        console.warn('saveProgress update error', updError);
       }
 
       // If update returned no data (row missing / not permitted), try upsert
-      const updatedRows = Array.isArray(upd.data) ? upd.data.length : (upd.data ? 1 : 0);
+      const updatedRows = Array.isArray(updData) ? updData.length : (updData ? 1 : 0);
       if (!updatedRows) {
-        const up = await supabase.from('profile').upsert({ id: user_id, materi_progress: payload }, { onConflict: 'id' }).select();
-        if (up.error) {
-          console.error('saveProgress upsert failed', up.error);
+        const { error: upError, data: upData } = await supabase.from('profile').upsert({ id: user_id, materi_progress: payload }, { onConflict: 'id' }).select();
+        if (upError) {
+          console.error('saveProgress upsert failed', upError);
+          return false;
         } else {
-          console.debug('saveProgress upsert ok', up.data);
+          console.debug('saveProgress upsert ok', upData);
+          return true;
         }
       } else {
-        console.debug('saveProgress update ok', upd.data);
+        console.debug('saveProgress update ok', updData);
+        return true;
       }
 
     } catch (e) {
       console.error('saveProgressToSupabase exception', e);
+      return false;
     }
+  }
+
+  // --- LOCAL QUEUE FALLBACK ---
+  const QUEUE_KEY = 'pysphere_progress_queue_v1';
+  function enqueueProgress(payload){
+    try{
+      const q = JSON.parse(localStorage.getItem(QUEUE_KEY) || '[]');
+      q.push({ ts: Date.now(), user_id: user_id, payload });
+      localStorage.setItem(QUEUE_KEY, JSON.stringify(q));
+      console.debug('enqueueProgress saved to local queue', payload);
+    }catch(e){ console.warn('enqueueProgress failed', e); }
+  }
+
+  async function flushProgressQueue(){
+    if (typeof supabase === 'undefined') return; // can't flush yet
+    try{
+      const raw = localStorage.getItem(QUEUE_KEY);
+      if(!raw) return;
+      const q = JSON.parse(raw || '[]');
+      if(!Array.isArray(q) || q.length === 0) return;
+      console.debug('flushProgressQueue: attempting to flush', q.length, 'items');
+      for(const item of q){
+        try{
+          // Only flush items for current user (others may belong to other sessions)
+          if(!item || !item.user_id || item.user_id !== user_id) continue;
+          const up = await supabase.from('profile').upsert({ id: item.user_id, materi_progress: item.payload }, { onConflict: 'id' }).select();
+          if(up.error) console.warn('flushProgressQueue upsert error', up.error);
+          else console.debug('flushProgressQueue upsert ok', up.data);
+        }catch(e){ console.warn('flushProgressQueue item failed', e); }
+      }
+      // remove only items for this user
+      const remaining = q.filter(i => !i || !i.user_id || i.user_id !== user_id);
+      if(remaining.length) localStorage.setItem(QUEUE_KEY, JSON.stringify(remaining)); else localStorage.removeItem(QUEUE_KEY);
+    }catch(e){ console.warn('flushProgressQueue failed', e); }
   }
 
   // --- FUNGSI LAMA (Tidak berubah) ---
@@ -923,15 +961,29 @@ setTimeout(()=>{
     // Use a capturing handler and stop other listeners so the lightweight
     // handlers in script.js (which toggle dataset attributes) don't clash
     // with our authoritative state object.
-    btn.addEventListener('click', (e)=>{
+  btn.addEventListener('click', async (e)=>{
       try{ e.stopImmediatePropagation(); }catch(_){ /* ignore */ }
       const mod = btn.dataset.module;
       if(!mod) return;
       state[mod] = !state[mod]; // Update state lokal
       updateProgressUI();      // Update UI
       refreshButtons();        // Update tombol
-      // Save but don't block UI
-      saveProgressToSupabase().catch(err=>console.warn('saveProgress failed', err));
+      // Build normalized payload
+      const payload = {};
+      MODULES.forEach(m => { payload[m] = !!state[m]; });
+
+      // If supabase/client not available or saving fails, enqueue locally
+      if (typeof supabase === 'undefined' || !user_id) {
+        enqueueProgress(payload);
+      } else {
+        try{
+          const ok = await saveProgressToSupabase();
+          if (!ok) enqueueProgress(payload);
+        }catch(e){
+          console.warn('saveProgress failed, enqueueing', e);
+          enqueueProgress(payload);
+        }
+      }
     }, { passive: true });
   });
 
@@ -1107,8 +1159,10 @@ setTimeout(()=>{
       console.warn('supabase init failed or timed out', e);
     }
 
-    try{ if(typeof loadProgressFromSupabase === 'function') await loadProgressFromSupabase(); }catch(e){ console.warn('loadProgressFromSupabase failed', e); }
-    try{ if(typeof showProfileView === 'function') await showProfileView(); }catch(e){ console.warn('showProfileView failed', e); }
+  try{ if(typeof loadProgressFromSupabase === 'function') await loadProgressFromSupabase(); }catch(e){ console.warn('loadProgressFromSupabase failed', e); }
+  // Attempt to flush any locally queued progress for this user
+  try{ if(typeof flushProgressQueue === 'function') await flushProgressQueue(); }catch(e){ console.warn('flushProgressQueue failed', e); }
+  try{ if(typeof showProfileView === 'function') await showProfileView(); }catch(e){ console.warn('showProfileView failed', e); }
 
     // re-attach DOMContentLoaded fallback in case consumers expect it
     try{ window.dispatchEvent(new Event('supabase-ready')); }catch(e){}
