@@ -1127,6 +1127,32 @@ setTimeout(()=>{
   // --- MEMUAT DATA SAAT HALAMAN DIBUKA ---
   // Panggil fungsi load baru kita -- defer until Supabase client is ready
   // (we'll initialize Supabase-dependent calls in a single async init below)
+  // Attempt to persist remaining progress before the page unloads.
+  // This is best-effort: persist to localStorage (per-user key) and enqueue a flush
+  // so the data will be uploaded when the user next opens the site or logs in.
+  try{
+    window.addEventListener('beforeunload', function(e){
+      try{
+        // Only proceed if `state` and MODULES are available in this closure scope
+        if(typeof state === 'object' && state !== null){
+          const payload = {};
+          MODULES.forEach(m => { payload[m] = !!state[m]; });
+          try{
+            const lpKey = localProgressKey(user_id);
+            localStorage.setItem(lpKey, JSON.stringify(payload));
+          }catch(err){ /* ignore storage errors */ }
+
+          // Ensure the payload is queued as well so flushProgressQueue will attempt
+          // to send it to Supabase on next visit/login.
+          try{ enqueueProgress(payload); }catch(err){ /* ignore */ }
+        }
+      }catch(err){
+        console.warn('beforeunload flush failed', err);
+      }
+      // Non-blocking best-effort: do not call preventDefault()
+    }, { passive: true });
+  }catch(e){ console.warn('beforeunload listener attach failed', e); }
+
 })();
 
 // --- GANTI BLOK FUNGSI LOGIN/REGISTER LAMA DENGAN INI ---
