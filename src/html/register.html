@@ -101,8 +101,8 @@
             id: newUser.id,
             full_name: name,
             email: email,
-            // Start with an empty object — user hasn't read anything yet.
-            materi_progress: {},
+            // Start with default materi_progress where all modules are false
+            materi_progress: { "ghs": false, "pegas": false, "bandul": false, "getaran": false },
             updated_at: new Date().toISOString()
           }, { onConflict: 'id' });
           if (up.error) {

@@ -812,6 +812,17 @@ setTimeout(()=>{
       } else {
         state = {};
       }
+      // If the stored value was empty (no keys), persist a default object
+      const hasAnyKey = Object.keys(mp || {}).length > 0;
+      if (!hasAnyKey) {
+        const defaultPayload = {};
+        MODULES.forEach(m => { defaultPayload[m] = false; });
+        try{
+          // try to persist default so other clients see it
+          await supabase.from('profile').upsert({ id: user_id, materi_progress: defaultPayload }, { onConflict: 'id' });
+          console.debug('loadProgressFromSupabase: wrote default materi_progress for user', user_id);
+        }catch(e){ console.warn('loadProgressFromSupabase: failed to write default materi_progress', e); }
+      }
     } else if (error) {
        console.error("Error loading progress:", error.message);
     }
