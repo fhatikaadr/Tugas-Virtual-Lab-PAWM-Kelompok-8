@@ -410,72 +410,6 @@ async function fetchProfileRow(user_id, selectCols = '*'){
   return { error: new Error('No profile table found or all queries failed') };
 }
 
-// ... setelah fungsi fetchProfileRow() ...
-
-/**
- * Memastikan baris profile ada untuk user yang sedang login.
- * Jika tidak ada, buatkan satu menggunakan metadata dari auth.
- */
-async function ensureProfileExists() {
-  if (!supabase) return; // Supabase belum siap
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return; // Tidak ada user
-
-  try {
-    // 1. Cek apakah profile sudah ada
-    const { data, error, count } = await supabase
-      .from('profile') // Asumsi tabel Anda 'profile'
-      .select('id', { count: 'exact', head: true })
-      .eq('id', user.id);
-
-    // Jika error (selain 'profiles' tidak ditemukan) atau profile sudah ada (count > 0)
-    if (error && !error.message.includes('relation "profiles" does not exist')) {
-      console.debug('ensureProfileExists: Cek profile error', error.message);
-      return;
-    }
-    if (count > 0) {
-      console.debug('ensureProfileExists: Profile sudah ada.');
-      return; // Profile sudah ada, tidak perlu buat baru
-    }
-
-    // 2. Jika tidak ada, coba tabel 'profiles' (berdasarkan fetchProfileRow Anda)
-    const { data: data2, error: error2, count: count2 } = await supabase
-      .from('profiles')
-      .select('id', { count: 'exact', head: true })
-      .eq('id', user.id);
-
-    if (count2 > 0) {
-      console.debug('ensureProfileExists: Profiles sudah ada.');
-      return; // Profile sudah ada, tidak perlu buat baru
-    }
-
-    // 3. Profile tidak ditemukan di kedua tabel. Buat baru di 'profile'.
-    console.log('ensureProfileExists: Profile tidak ditemukan, membuat baru...');
-    const defaultProgress = { "ghs": false, "pegas": false, "bandul": false, "getaran": false };
-    const profileData = {
-      id: user.id,
-      email: user.email,
-      // Ambil nama dari Google, jika tidak ada, gunakan bagian email
-      full_name: user.user_metadata?.full_name || user.email.split('@')[0],
-      materi_progress: defaultProgress,
-      updated_at: new Date().toISOString()
-    };
-
-    const { error: insertError } = await supabase
-      .from('profile') // Targetkan 'profile' sebagai tabel utama
-      .upsert(profileData, { onConflict: 'id' });
-
-    if (insertError) {
-      console.error('Gagal membuat profile baru:', insertError.message);
-    } else {
-      console.log('Profile baru berhasil dibuat untuk user:', user.id);
-    }
-
-  } catch (e) {
-    console.error('Error di ensureProfileExists:', e);
-  }
-}
-
 // --- ...DENGAN FUNGSI BARU (ASYNC) INI ---
 window.renderCompletedResults = async function(){
   try{
@@ -1329,23 +1263,13 @@ setTimeout(()=>{
 
   // initialize Supabase-dependent pieces after the SDK is ready
   (async function initSupabaseDependent(){
-    // ... di dalam (async function initSupabaseDependent(){ ...
-  try{
-    await (window.__supabaseReady || Promise.resolve());
-  }catch(e){
-    console.warn('supabase init failed or timed out', e);
-  }
-
-  // --- TAMBAHKAN BLOK INI ---
-  try {
-    if (typeof ensureProfileExists === 'function') await ensureProfileExists();
-  } catch (e) {
-    console.warn('ensureProfileExists failed', e);
-  }
-  // --- AKHIR BLOK TAMBAHAN ---
+    try{
+      await (window.__supabaseReady || Promise.resolve());
+    }catch(e){
+      console.warn('supabase init failed or timed out', e);
+    }
 
   try{ if(typeof loadProgressFromSupabase === 'function') await loadProgressFromSupabase(); }catch(e){ console.warn('loadProgressFromSupabase failed', e); }
-  // ...
   // Attempt to flush any locally queued progress for this user
   try{ if(typeof flushProgressQueue === 'function') await flushProgressQueue(); }catch(e){ console.warn('flushProgressQueue failed', e); }
   try{ if(typeof showProfileView === 'function') await showProfileView(); }catch(e){ console.warn('showProfileView failed', e); }
