@@ -60,7 +60,7 @@ function _initSupabaseClient(){
 					});
 
 				// 1) Try dynamic import of local ESM (works if /src/js/supabase.min.js is an ESM bundle)
-				tryImport('/src/js/supabase.min.js')
+				tryImport('../js/supabase.min.js')
 					.catch(() => {
 						// 2) If local ESM fails, try to load a UMD bundle via script tag from a CDN
 						// Use the UMD build path which should expose a global createClient.

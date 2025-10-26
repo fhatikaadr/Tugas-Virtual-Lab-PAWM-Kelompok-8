@@ -1,12 +1,12 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <script src="/src/js/supabase-client.js"></script>
+  <script src="../js/supabase-client.js"></script>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>PhySphere — Register</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="/src/css/style.css">
+  <link rel="stylesheet" href="../css/style.css">
 </head>
 <body class="min-h-screen flex items-center justify-center bg-gradient-to-b from-purple-50 to-yellow-50">
   <div class="max-w-md w-full p-6">
@@ -24,12 +24,24 @@
 
       <div class="mt-4 flex gap-2">
         <button id="reg-submit" class="vlab-button bg-green-600 text-white">Daftar</button>
-        <a href="/" class="vlab-button bg-white border">Kembali</a>
+        <a href="index.html" class="vlab-button bg-white border">Kembali</a>
       </div>
 
-      <div id="reg-msg" class="text-sm text-red-500 mt-3"></div>
-      <hr class="my-4">
-  <div class="text-sm text-slate-600">Sudah punya akun? <a href="/login" class="text-blue-600 font-semibold">Masuk</a></div>
+  <div id="reg-msg" class="text-sm text-red-500 mt-3"></div>
+
+  <div class="my-4 flex items-center">
+    <hr class="flex-grow border-t">
+    <span class="px-2 text-sm text-slate-500">atau</span>
+    <hr class="flex-grow border-t">
+  </div>
+
+  <button id="register-google" class="vlab-button bg-white border border-slate-300 text-slate-700 w-full flex items-center justify-center gap-2">
+    <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" class="w-5 h-5">
+    Daftar dengan Google
+  </button>
+
+  <hr class="my-4">
+  <div class="text-sm text-slate-600">Sudah punya akun? <a href="login.html" class="text-blue-600 font-semibold">Masuk</a></div>
     </div>
   </div>
 
@@ -47,8 +59,8 @@
         if (!window.supabase) return;
         const { data: { session } } = await supabase.auth.getSession();
         if (session) {
-          // User sudah login, lempar ke halaman utama
-          window.location.href = '/PhySphere';
+          // User sudah login, lempar ke halaman utama (local file)
+          window.location.href = 'PhySphere.html';
         }
       })();
 
@@ -120,9 +132,50 @@
         }
 
         msg.textContent = 'Registrasi berhasil! Mengarahkan...';
-        // Redirect to main (use absolute route so rewrites work)
+        // Redirect to main (local file)
         try{ sessionStorage.setItem('pysphere_active_page','beranda'); }catch(e){}
-        window.location.href = '/PhySphere';
+        window.location.href = 'PhySphere.html';
+      });
+
+      // ... setelah el('reg-submit').addEventListener ...
+
+      el('register-google').addEventListener('click', async function() {
+        const msg = el('reg-msg');
+        msg.textContent = 'Mengarahkan ke Google...';
+        try {
+          await (window.__supabaseReady || Promise.resolve());
+        } catch (e) {
+          console.error('Supabase init error (google reg):', e);
+        }
+        if (!window.supabase) {
+          msg.textContent = 'SDK Supabase gagal dimuat. Cek console.';
+          return;
+        }
+
+        // Berdasarkan vercel.json, halaman utama Anda adalah /PhySphere
+  // Best-effort local redirect target for OAuth flows when running locally.
+  // Note: OAuth flows typically require a web server and a registered redirect URL;
+  // using `file://` or local files may not work for OAuth in practice.
+  const redirectTo = 'PhySphere.html';
+
+        // Supabase OAuth menangani sign-up dan sign-in dengan satu fungsi
+        const { data, error } = await supabase.auth.signInWithOAuth({
+          provider: 'google',
+          options: {
+            redirectTo: redirectTo,
+            // Force Google to show account chooser even if already signed in
+            // prompt=select_account ensures the user can pick the desired Google account
+            queryParams: {
+              prompt: 'select_account',
+              access_type: 'offline',
+              include_granted_scopes: 'true'
+            }
+          }
+        });
+
+        if (error) {
+          msg.textContent = 'Gagal daftar dengan Google: ' + error.message;
+        }
       });
     })();
   </script>

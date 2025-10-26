@@ -1,12 +1,12 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <script src="/src/js/supabase-client.js"></script>
+  <script src="../js/supabase-client.js"></script>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>PhySphere — Login</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="/src/css/style.css">
+  <link rel="stylesheet" href="../css/style.css">
 </head>
 <body class="min-h-screen flex items-center justify-center bg-gradient-to-b from-purple-50 to-yellow-50">
   <div class="max-w-md w-full p-6">
@@ -21,13 +21,24 @@
 
       <div class="mt-4 flex gap-2">
         <button id="login-submit" class="vlab-button bg-blue-600 text-white">Masuk</button>
-  <a href="/" class="vlab-button bg-white border">Kembali</a>
+        <a href="index.html" class="vlab-button bg-white border">Kembali</a>
       </div>
 
-  <div id="login-msg" class="text-sm text-red-500 mt-3"></div>
-  <hr class="my-4">
-  <div class="text-sm text-slate-600">Belum punya akun? <a href="/register" class="text-blue-600 font-semibold">Daftar</a></div>
-    </div>
+<div id="reg-msg" class="text-sm text-red-500 mt-3"></div>
+
+<div class="my-4 flex items-center">
+  <hr class="flex-grow border-t">
+  <span class="px-2 text-sm text-slate-500">atau</span>
+  <hr class="flex-grow border-t">
+</div>
+
+<button id="register-google" class="vlab-button bg-white border border-slate-300 text-slate-700 w-full flex items-center justify-center gap-2">
+  <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" class="w-5 h-5">
+  Masuk dengan Google
+</button>
+
+<hr class="my-4">
+  <div class="text-sm text-slate-600">Belum punya akun? <a href="register.html" class="text-blue-600 font-semibold">Daftar</a></div>
   </div>
 
   <script>
@@ -44,8 +55,8 @@
         if (!window.supabase) return;
         const { data: { session } } = await supabase.auth.getSession();
         if (session) {
-          // User sudah login, lempar ke halaman utama
-          window.location.href = '/PhySphere';
+          // User sudah login, lempar ke halaman utama (local file)
+          window.location.href = 'PhySphere.html';
         }
       })();
 
@@ -53,7 +64,8 @@
       el('login-submit').addEventListener('click', async function(){
         const email = (el('login-email').value||'').trim().toLowerCase();
         const pass = (el('login-password').value||'');
-        const msg = el('login-msg'); msg.textContent = '';
+        // Use the existing message element id (reg-msg)
+        const msg = el('reg-msg'); msg.textContent = '';
         
         if(!email || !pass){ msg.textContent = 'Email dan password wajib diisi.'; return; }
 
@@ -80,9 +92,54 @@
             return;
           }
 
-          // Login berhasil, Supabase menyimpan session di localStorage-nya sendiri
-          try{ sessionStorage.setItem('pysphere_active_page','beranda'); }catch(e){}
-          window.location.href = '/PhySphere';
+      // Login berhasil, Supabase menyimpan session di localStorage-nya sendiri
+      try{ sessionStorage.setItem('pysphere_active_page','beranda'); }catch(e){}
+      // Redirect ke halaman utama lokal
+      window.location.href = 'PhySphere.html';
+      });
+
+      // OAuth (Google) button handler — mirrors register.html but for login
+      el('register-google').addEventListener('click', async function() {
+        const msg = el('reg-msg');
+        msg.textContent = 'Mengarahkan ke Google...';
+        try {
+          await (window.__supabaseReady || Promise.resolve());
+        } catch (e) {
+          console.error('Supabase init error (google login):', e);
+        }
+        if (!window.supabase) {
+          msg.textContent = 'SDK Supabase gagal dimuat. Cek console.';
+          return;
+        }
+
+        // Determine a sensible redirect target. OAuth typically requires a web
+        // origin and registered redirect URL; for local file testing we'll use
+        // a local page fallback.
+        let redirectTo;
+        try {
+          if (window.location.protocol === 'file:' || window.location.origin === 'null') {
+            redirectTo = 'PhySphere.html';
+          } else {
+            redirectTo = window.location.origin + '/PhySphere';
+          }
+        } catch (e) { redirectTo = 'PhySphere.html'; }
+
+        const { data, error } = await supabase.auth.signInWithOAuth({
+          provider: 'google',
+          options: {
+            redirectTo: redirectTo,
+            queryParams: {
+              prompt: 'select_account',
+              access_type: 'offline',
+              include_granted_scopes: 'true'
+            }
+          }
+        });
+
+        if (error) {
+          msg.textContent = 'Gagal masuk dengan Google: ' + (error.message || String(error));
+          console.error('Google login error', error);
+        }
       });
     })();
   </script>
