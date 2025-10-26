@@ -390,6 +390,26 @@ function updateGlobalScore(){
   document.getElementById('live-score').textContent = `${total} / ${maxTotal}`; 
 }
 
+// Global helper: try fetching a profile row from either 'profile' or 'profiles'.
+// Returns { data, table } on success or { error } on failure.
+async function fetchProfileRow(user_id, selectCols = '*'){
+  const tableCandidates = ['profile','profiles'];
+  for(const tbl of tableCandidates){
+    try{
+      const res = await supabase.from(tbl).select(selectCols).eq('id', user_id).single();
+      if(!res || res.error){
+        console.debug(`fetchProfileRow: table=${tbl} returned error`, res && res.error ? res.error : res);
+        continue;
+      }
+      return { data: res.data, table: tbl };
+    }catch(e){
+      console.debug('fetchProfileRow caught exception for table', tbl, e);
+      continue;
+    }
+  }
+  return { error: new Error('No profile table found or all queries failed') };
+}
+
 // --- ...DENGAN FUNGSI BARU (ASYNC) INI ---
 window.renderCompletedResults = async function(){
   try{
@@ -400,34 +420,50 @@ window.renderCompletedResults = async function(){
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    const { data: profileData, error } = await supabase
-      .from('profile')
-      .select('quiz_scores')
-      .eq('id', user.id)
-      .single();
+    // Prefer reading best percentages from `user_best_score` table.
+    // Fallback: compute best percentage per topic from quiz_history.
+    try{
+      const [{ data: bests, error: bErr }, { data: history, error: hErr }] = await Promise.all([
+        supabase.from('user_best_score').select('quiz_key, best_percentage, updated_at').eq('user_id', user.id),
+        supabase.from('quiz_history').select('quiz_key, percentage, created_at').eq('user_id', user.id)
+      ]);
 
-    if (error || !profileData || !profileData.quiz_scores) {
-      panel.innerHTML = '<div class="text-sm text-slate-600">Belum ada hasil kuis.</div>';
-      return;
-    }
+      if(bErr) console.debug('renderCompletedResults: user_best_score fetch error', bErr);
+      if(hErr) console.debug('renderCompletedResults: quiz_history fetch error', hErr);
 
-    const scores = profileData.quiz_scores;
-    let html = '<div class="text-sm font-semibold mb-2">Hasil Kuis:</div>';
-    let hasScores = false;
-
-    // Tampilkan skor dari database
-    TOPICS.forEach(t => {
-      if (scores[t] !== null && scores[t] !== undefined) {
-        html += `<div class="topic-result quiz-completed mb-2"><span class="completed-badge">Selesai</span> ${t.toUpperCase()}: ${scores[t]}%</div>`;
-        hasScores = true;
+      let scoresMap = {};
+      if (bests && bests.length) {
+        bests.forEach(b => { if(b && b.quiz_key) scoresMap[String(b.quiz_key).toLowerCase()] = { pct: (b.best_percentage!=null?Number(b.best_percentage):null), date: b.updated_at }; });
       }
-    });
 
-    if (!hasScores) {
-      html += '<div class="text-sm text-slate-600">Belum ada hasil kuis.</div>';
+      if ((!bests || bests.length === 0) && history && history.length) {
+        // compute best from history
+        history.forEach(h => {
+          const key = String(h.quiz_key || 'unknown').toLowerCase();
+          const pct = (h.percentage != null) ? Number(h.percentage) : null;
+          if(pct != null){
+            if(!scoresMap[key] || (scoresMap[key].pct == null) || pct > scoresMap[key].pct){
+              scoresMap[key] = { pct, date: h.created_at };
+            }
+          }
+        });
+      }
+
+      let html = '<div class="text-sm font-semibold mb-2">Hasil Kuis:</div>';
+      let hasScores = false;
+      TOPICS.forEach(t => {
+        const entry = scoresMap[t.toLowerCase()];
+        if(entry && entry.pct != null){
+          html += `<div class="topic-result quiz-completed mb-2"><span class="completed-badge">Selesai</span> ${t.toUpperCase()}: ${Math.round(entry.pct)}%</div>`;
+          hasScores = true;
+        }
+      });
+      if (!hasScores) html += '<div class="text-sm text-slate-600">Belum ada hasil kuis.</div>';
+      panel.innerHTML = html;
+    }catch(err){
+      console.warn('renderCompletedResults failed fetching bests/history', err);
+      panel.innerHTML = '<div class="text-sm text-slate-600">Belum ada hasil kuis.</div>';
     }
-    
-    panel.innerHTML = html;
   }catch(e){ console.warn('renderCompletedResults failed', e); }
 };
 
@@ -448,26 +484,37 @@ window.updateTopicUI = async function(topic){
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    const { data: profileData, error } = await supabase
-      .from('profile')
-      .select('quiz_scores')
-      .eq('id', user.id)
-      .single();
+    // First try to read per-topic best from `user_best_score` (preferred),
+    // otherwise fall back to most recent entry in `quiz_history` for this topic.
+    try{
+      const { data: bestRows, error: bestErr } = await supabase.from('user_best_score').select('best_percentage, updated_at').eq('user_id', user.id).eq('quiz_key', topic);
+      if(bestErr) console.debug('updateTopicUI: user_best_score fetch error', bestErr);
+      if(bestRows && bestRows.length){
+        const b = bestRows[0];
+        if(b && b.best_percentage != null){
+          resultEl.innerHTML = `<span class="completed-badge">Selesai</span> Skor: ${Math.round(Number(b.best_percentage))}%`;
+          resultEl.classList.add('quiz-completed');
+          return;
+        }
+      }
 
-    if (error || !profileData || !profileData.quiz_scores) {
+      // fallback: latest history entry for this topic
+      const { data: histRows, error: histErr } = await supabase.from('quiz_history').select('percentage, created_at').eq('user_id', user.id).eq('quiz_key', topic).order('created_at', { ascending: false }).limit(1);
+      if(histErr) console.debug('updateTopicUI: quiz_history fetch error', histErr);
+      if(histRows && histRows.length){
+        const h = histRows[0];
+        if(h && h.percentage != null){
+          resultEl.innerHTML = `<span class="completed-badge">Selesai</span> Skor: ${Math.round(Number(h.percentage))}%`;
+          resultEl.classList.add('quiz-completed');
+          return;
+        }
+      }
+
+      // no data found for this topic
       resultEl.innerHTML = 'Belum dikerjakan.';
       resultEl.classList.remove('quiz-completed');
-      return;
-    }
-
-    const scores = profileData.quiz_scores;
-    
-    // Cek apakah topik ini ada di skor database
-    if (scores[topic] !== null && scores[topic] !== undefined) {
-      // Kita tidak tahu lagi skor mentah (3/3), jadi kita tampilkan persentasenya saja
-      resultEl.innerHTML = `<span class="completed-badge">Selesai</span> Skor: ${scores[topic]}%`;
-      resultEl.classList.add('quiz-completed');
-    } else {
+    }catch(e){
+      console.warn('updateTopicUI failed fetching best/history', e);
       resultEl.innerHTML = 'Belum dikerjakan.';
       resultEl.classList.remove('quiz-completed');
     }
@@ -787,12 +834,10 @@ setTimeout(()=>{
     }
     user_id = user.id;
 
-    // Ambil data dari tabel 'profile' (BUKAN 'profiles')
-    const { data, error } = await supabase
-      .from('profile') // <-- DIPERBAIKI
-      .select('materi_progress') // Hanya ambil kolom yang kita butuh
-      .eq('id', user_id)
-      .single(); // ambil satu baris data saja
+    // Ambil data dari tabel 'profile' (coba 'profile' lalu 'profiles')
+    const fetched = await fetchProfileRow(user_id, 'materi_progress');
+    const data = fetched && fetched.data ? fetched.data : null;
+    const error = fetched && fetched.error ? fetched.error : null;
 
     if (data) {
       // Normalize materi_progress into an object with known keys.
@@ -819,12 +864,14 @@ setTimeout(()=>{
         MODULES.forEach(m => { defaultPayload[m] = false; });
         try{
           // try to persist default so other clients see it
-          await supabase.from('profile').upsert({ id: user_id, materi_progress: defaultPayload }, { onConflict: 'id' });
+          // Upsert into the detected table (fallback to 'profile')
+          const targetTable = (fetched && fetched.table) ? fetched.table : 'profile';
+          await supabase.from(targetTable).upsert({ id: user_id, materi_progress: defaultPayload }, { onConflict: 'id' });
           console.debug('loadProgressFromSupabase: wrote default materi_progress for user', user_id);
         }catch(e){ console.warn('loadProgressFromSupabase: failed to write default materi_progress', e); }
       }
     } else if (error) {
-       console.error("Error loading progress:", error.message);
+       console.error("Error loading progress:", error && error.message ? error.message : error);
     }
     
     loaded = true;
@@ -845,31 +892,32 @@ setTimeout(()=>{
       console.debug('saveProgressToSupabase: user_id=', user_id, 'payload=', payload);
 
       // Try update first (most common). If no rows were updated, fall back to upsert.
-      const { error: updError, data: updData } = await supabase
-        .from('profile')
-        .update({ materi_progress: payload })
-        .eq('id', user_id)
-        .select();
-
-      if (updError) {
-        console.warn('saveProgress update error', updError);
+      // Try updating then upserting; attempt both common table names
+      const tables = ['profile','profiles'];
+      for(const tbl of tables){
+        try{
+          const { error: updError, data: updData } = await supabase
+            .from(tbl)
+            .update({ materi_progress: payload })
+            .eq('id', user_id)
+            .select();
+          if(!updError){
+            const updatedRows = Array.isArray(updData) ? updData.length : (updData ? 1 : 0);
+            if(updatedRows){ console.debug('saveProgress update ok on', tbl, updData); return true; }
+          }
+        }catch(e){ console.debug('saveProgress update attempt failed on', tbl, e); }
       }
 
-      // If update returned no data (row missing / not permitted), try upsert
-      const updatedRows = Array.isArray(updData) ? updData.length : (updData ? 1 : 0);
-      if (!updatedRows) {
-        const { error: upError, data: upData } = await supabase.from('profile').upsert({ id: user_id, materi_progress: payload }, { onConflict: 'id' }).select();
-        if (upError) {
-          console.error('saveProgress upsert failed', upError);
-          return false;
-        } else {
-          console.debug('saveProgress upsert ok', upData);
-          return true;
-        }
-      } else {
-        console.debug('saveProgress update ok', updData);
-        return true;
+      // If update did not succeed on any table, fallback to upsert on candidates
+      for(const tbl of tables){
+        try{
+          const { error: upError, data: upData } = await supabase.from(tbl).upsert({ id: user_id, materi_progress: payload }, { onConflict: 'id' }).select();
+          if(!upError){ console.debug('saveProgress upsert ok on', tbl, upData); return true; }
+        }catch(e){ console.debug('saveProgress upsert failed on', tbl, e); }
       }
+
+      console.error('saveProgress: update/upsert failed for all candidate tables');
+      return false;
 
     } catch (e) {
       console.error('saveProgressToSupabase exception', e);
@@ -900,9 +948,16 @@ setTimeout(()=>{
         try{
           // Only flush items for current user (others may belong to other sessions)
           if(!item || !item.user_id || item.user_id !== user_id) continue;
-          const up = await supabase.from('profile').upsert({ id: item.user_id, materi_progress: item.payload }, { onConflict: 'id' }).select();
-          if(up.error) console.warn('flushProgressQueue upsert error', up.error);
-          else console.debug('flushProgressQueue upsert ok', up.data);
+          // try both candidate tables
+          const tables = ['profile','profiles'];
+          let ok=false;
+          for(const tbl of tables){
+            try{
+              const up = await supabase.from(tbl).upsert({ id: item.user_id, materi_progress: item.payload }, { onConflict: 'id' }).select();
+              if(!up.error){ console.debug('flushProgressQueue upsert ok on', tbl, up.data); ok=true; break; }
+            }catch(e){ console.debug('flushProgressQueue upsert failed on', tbl, e); }
+          }
+          if(!ok) console.warn('flushProgressQueue upsert error for item', item);
         }catch(e){ console.warn('flushProgressQueue item failed', e); }
       }
       // remove only items for this user
@@ -1025,12 +1080,10 @@ setTimeout(()=>{
       el('not-logged').classList.add('hidden');
       el('logged-in').classList.remove('hidden');
 
-      // Ambil 'full_name' dari tabel 'profile' (BUKAN 'profiles')
-      const { data: profileData, error } = await supabase
-        .from('profile') // <-- DIPERBAIKI
-        .select('full_name')
-        .eq('id', user.id)
-        .single();
+      // Ambil 'full_name' dari tabel profile/profiles (coba 'profile' lalu 'profiles')
+      const fetchedProfile = await fetchProfileRow(user.id, 'full_name');
+      const profileData = fetchedProfile && fetchedProfile.data ? fetchedProfile.data : null;
+      if(fetchedProfile && fetchedProfile.error) console.debug('showProfileView: profile fetch error', fetchedProfile.error);
 
       let displayName = (profileData && profileData.full_name) ? profileData.full_name : user.email;
 
@@ -1043,7 +1096,8 @@ setTimeout(()=>{
       try{
         const [{ data: history, error: hErr }, { data: bests, error: bErr }] = await Promise.all([
           supabase.from('quiz_history').select('id, quiz_key, quiz_name, score, max_score, percentage, passed, created_at').eq('user_id', user.id).order('created_at', {ascending:false}).limit(200),
-          supabase.from('user_best_scores').select('quiz_key, best_score, best_max_score, best_percentage, achieved_at').eq('user_id', user.id)
+            // Your DB uses table `user_best_score` (singular) with columns: quiz_key, best_percentage, updated_at
+            supabase.from('user_best_score').select('quiz_key, best_percentage, updated_at').eq('user_id', user.id)
         ]);
 
         if(hErr) console.error('history fetch error', hErr);
@@ -1077,8 +1131,10 @@ setTimeout(()=>{
             let html = '<div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">';
             bestSource.forEach(b=>{
               const quizLabel = escapeHtml(String(b.quiz_key || b.quiz_name || 'Kuis'));
+              // Prefer best_percentage (exists in your schema). If not present, try to compute from available fields.
               const pct = (b.best_percentage != null) ? Number(b.best_percentage) : (b.best_score!=null && b.best_max_score? Math.round(100*(b.best_score/b.best_max_score)): null);
-              const dateLabel = b.achieved_at ? new Date(b.achieved_at).toLocaleString() : '';
+              // Updated timestamp column in your table is `updated_at`.
+              const dateLabel = (b.updated_at || b.achieved_at) ? new Date(b.updated_at || b.achieved_at).toLocaleString() : '';
               const scoreLabel = (b.best_score!=null ? `${b.best_score}` : '-') + (b.best_max_score? ` / ${b.best_max_score}` : '');
               html += `
                 <div class="bg-white rounded-xl shadow p-4 flex items-center gap-4">
