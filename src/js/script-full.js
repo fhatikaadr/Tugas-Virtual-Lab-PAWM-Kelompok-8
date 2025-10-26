@@ -789,8 +789,24 @@ setTimeout(()=>{
       .eq('id', user_id)
       .single(); // ambil satu baris data saja
 
-    if (data && data.materi_progress) {
-      state = data.materi_progress;
+    if (data) {
+      // Normalize materi_progress into an object with known keys.
+      let mp = data.materi_progress;
+      if (!mp || typeof mp === 'string') {
+        try {
+          // attempt JSON parse when it's a string
+          mp = (typeof mp === 'string' && mp.trim()) ? JSON.parse(mp) : {};
+        } catch (e) {
+          mp = {};
+        }
+      }
+      if (typeof mp === 'object' && mp !== null) {
+        // ensure all MODULES keys exist as booleans (default false)
+        state = {};
+        MODULES.forEach(m => { state[m] = !!mp[m]; });
+      } else {
+        state = {};
+      }
     } else if (error) {
        console.error("Error loading progress:", error.message);
     }
@@ -810,12 +826,32 @@ setTimeout(()=>{
       const payload = {};
       MODULES.forEach(m => { payload[m] = !!state[m]; });
 
-      const { error } = await supabase
+      console.debug('saveProgressToSupabase: user_id=', user_id, 'payload=', payload);
+
+      // Try update first (most common). If no rows were updated, fall back to upsert.
+      const upd = await supabase
         .from('profile')
         .update({ materi_progress: payload })
-        .eq('id', user_id);
+        .eq('id', user_id)
+        .select();
 
-      if (error) console.error('Error saving progress:', error.message);
+      if (upd.error) {
+        console.warn('saveProgress update error', upd.error);
+      }
+
+      // If update returned no data (row missing / not permitted), try upsert
+      const updatedRows = Array.isArray(upd.data) ? upd.data.length : (upd.data ? 1 : 0);
+      if (!updatedRows) {
+        const up = await supabase.from('profile').upsert({ id: user_id, materi_progress: payload }, { onConflict: 'id' }).select();
+        if (up.error) {
+          console.error('saveProgress upsert failed', up.error);
+        } else {
+          console.debug('saveProgress upsert ok', up.data);
+        }
+      } else {
+        console.debug('saveProgress update ok', upd.data);
+      }
+
     } catch (e) {
       console.error('saveProgressToSupabase exception', e);
     }
