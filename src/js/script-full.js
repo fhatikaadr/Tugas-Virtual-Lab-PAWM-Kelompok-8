@@ -1125,8 +1125,80 @@ setTimeout(()=>{
   });
 
   // --- MEMUAT DATA SAAT HALAMAN DIBUKA ---
-  // Panggil fungsi load baru kita -- defer until Supabase client is ready
-  // (we'll initialize Supabase-dependent calls in a single async init below)
+  // Initialize progress module: load from Supabase and set up auth state listener
+  (async function initProgressModule(){
+    try{
+      // Wait for Supabase SDK to be ready
+      await (window.__supabaseReady || Promise.resolve());
+    }catch(e){
+      console.warn('Supabase init failed in progress module', e);
+    }
+
+    // Set up auth state change listener to reload progress when user logs in/out
+    try{
+      if(supabase && supabase.auth && typeof supabase.auth.onAuthStateChange === 'function'){
+        supabase.auth.onAuthStateChange(async (event, session) => {
+          console.debug('Auth state changed:', event, session?.user?.id);
+          
+          // Reset loaded flag so progress can be reloaded for new user
+          loaded = false;
+          
+          if(session && session.user){
+            // User logged in or session restored
+            user_id = session.user.id;
+            try{
+              await loadProgressFromSupabase();
+              await flushProgressQueue();
+            }catch(e){
+              console.warn('Failed to load/flush progress on auth change', e);
+            }
+          } else {
+            // User logged out
+            user_id = null;
+            state = {};
+            updateProgressUI();
+            refreshButtons();
+          }
+        });
+      }
+    }catch(e){
+      console.warn('Failed to set up auth state listener', e);
+    }
+
+    // Load progress from Supabase on initial page load
+    try{
+      await loadProgressFromSupabase();
+    }catch(e){
+      console.warn('loadProgressFromSupabase failed', e);
+    }
+
+    // Flush any queued progress for this user
+    try{
+      await flushProgressQueue();
+    }catch(e){
+      console.warn('flushProgressQueue failed', e);
+    }
+  })();
+
+  // Persist progress before page unload (best-effort)
+  try{
+    window.addEventListener('beforeunload', function(e){
+      try{
+        if(typeof state === 'object' && state !== null){
+          const payload = {};
+          MODULES.forEach(m => { payload[m] = !!state[m]; });
+          try{
+            const lpKey = localProgressKey(user_id);
+            localStorage.setItem(lpKey, JSON.stringify(payload));
+          }catch(err){ /* ignore */ }
+          try{ enqueueProgress(payload); }catch(err){ /* ignore */ }
+        }
+      }catch(err){
+        console.warn('beforeunload flush failed', err);
+      }
+    }, { passive: true });
+  }catch(e){ console.warn('beforeunload listener attach failed', e); }
+
 })();
 
 // --- GANTI BLOK FUNGSI LOGIN/REGISTER LAMA DENGAN INI ---
