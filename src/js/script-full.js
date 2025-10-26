@@ -438,6 +438,11 @@ window.updateTopicUI = async function(topic){
   try{
     const resultEl = document.getElementById('result-'+topic);
     if (!resultEl) return;
+    // Ensure Supabase client is ready before calling any auth/db APIs
+    if (typeof supabase === 'undefined') {
+      try { await (window.__supabaseReady || Promise.resolve()); } catch(e) { console.warn('supabase init failed in updateTopicUI', e); }
+      if (typeof supabase === 'undefined') { console.warn('supabase still undefined in updateTopicUI'); return; }
+    }
 
     // Ambil data skor dari database
     const { data: { user } } = await supabase.auth.getUser();
