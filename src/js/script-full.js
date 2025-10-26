@@ -831,27 +831,19 @@ setTimeout(()=>{
 
 // --- FUNGSI BARU: Mengambil progress dari Supabase ---
   async function loadProgressFromSupabase() {
-    if (loaded) {
-      console.debug('loadProgressFromSupabase: already loaded, skipping');
-      return; // Mencegah double-load
-    }
-
-    console.debug('loadProgressFromSupabase: starting...');
+    if (loaded) return; // Mencegah double-load
 
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
-      console.log("loadProgressFromSupabase: User tidak login, tidak bisa load progress.");
+      console.log("User tidak login, tidak bisa load progress.");
       return; // User tidak login
     }
     user_id = user.id;
-    console.debug('loadProgressFromSupabase: user_id =', user_id);
 
     // Ambil data dari tabel 'profile' (coba 'profile' lalu 'profiles')
     const fetched = await fetchProfileRow(user_id, 'materi_progress');
     const data = fetched && fetched.data ? fetched.data : null;
     const error = fetched && fetched.error ? fetched.error : null;
-
-    console.debug('loadProgressFromSupabase: fetched =', fetched);
 
     if (data) {
       // Normalize materi_progress into an object with known keys.
@@ -864,8 +856,6 @@ setTimeout(()=>{
           mp = {};
         }
       }
-      console.debug('loadProgressFromSupabase: parsed materi_progress =', mp);
-
       if (typeof mp === 'object' && mp !== null) {
         // ensure all MODULES keys exist as booleans (default false)
         state = {};
@@ -873,7 +863,6 @@ setTimeout(()=>{
       } else {
         state = {};
       }
-      console.debug('loadProgressFromSupabase: state from DB =', state);
       // Merge any locally stored progress (wins over DB until flushed)
       try{
         const lpKey = localProgressKey(user_id);
@@ -911,11 +900,10 @@ setTimeout(()=>{
         }catch(e){ console.warn('loadProgressFromSupabase: failed to write default materi_progress', e); }
       }
     } else if (error) {
-       console.error("loadProgressFromSupabase: Error loading progress:", error && error.message ? error.message : error);
+       console.error("Error loading progress:", error && error.message ? error.message : error);
     }
     
     loaded = true;
-    console.debug('loadProgressFromSupabase: loaded = true, final state =', state);
     updateProgressUI();
     refreshButtons();
   }
@@ -1139,88 +1127,6 @@ setTimeout(()=>{
   // --- MEMUAT DATA SAAT HALAMAN DIBUKA ---
   // Panggil fungsi load baru kita -- defer until Supabase client is ready
   // (we'll initialize Supabase-dependent calls in a single async init below)
-  
-  // Initialize progress loading when Supabase is ready
-  (async function initProgressModule(){
-    try{
-      // Wait for Supabase SDK to be ready
-      await (window.__supabaseReady || Promise.resolve());
-    }catch(e){
-      console.warn('Supabase init failed in progress module', e);
-    }
-
-    // Set up auth state change listener to reload progress when user logs in/out
-    try{
-      if(supabase && supabase.auth && typeof supabase.auth.onAuthStateChange === 'function'){
-        supabase.auth.onAuthStateChange(async (event, session) => {
-          console.debug('Auth state changed:', event, session?.user?.id);
-          
-          // Reset loaded flag so progress can be reloaded for new user
-          loaded = false;
-          
-          if(session && session.user){
-            // User logged in or session restored
-            user_id = session.user.id;
-            try{
-              await loadProgressFromSupabase();
-              await flushProgressQueue();
-            }catch(e){
-              console.warn('Failed to load/flush progress on auth change', e);
-            }
-          } else {
-            // User logged out
-            user_id = null;
-            state = {};
-            updateProgressUI();
-            refreshButtons();
-          }
-        });
-      }
-    }catch(e){
-      console.warn('Failed to set up auth state listener', e);
-    }
-
-    // Load progress from Supabase (or localStorage if offline/not logged in)
-    try{
-      await loadProgressFromSupabase();
-    }catch(e){
-      console.warn('loadProgressFromSupabase failed', e);
-    }
-
-    // Flush any queued progress for this user
-    try{
-      await flushProgressQueue();
-    }catch(e){
-      console.warn('flushProgressQueue failed', e);
-    }
-  })();
-
-  // Attempt to persist remaining progress before the page unloads.
-  // This is best-effort: persist to localStorage (per-user key) and enqueue a flush
-  // so the data will be uploaded when the user next opens the site or logs in.
-  try{
-    window.addEventListener('beforeunload', function(e){
-      try{
-        // Only proceed if `state` and MODULES are available in this closure scope
-        if(typeof state === 'object' && state !== null){
-          const payload = {};
-          MODULES.forEach(m => { payload[m] = !!state[m]; });
-          try{
-            const lpKey = localProgressKey(user_id);
-            localStorage.setItem(lpKey, JSON.stringify(payload));
-          }catch(err){ /* ignore storage errors */ }
-
-          // Ensure the payload is queued as well so flushProgressQueue will attempt
-          // to send it to Supabase on next visit/login.
-          try{ enqueueProgress(payload); }catch(err){ /* ignore */ }
-        }
-      }catch(err){
-        console.warn('beforeunload flush failed', err);
-      }
-      // Non-blocking best-effort: do not call preventDefault()
-    }, { passive: true });
-  }catch(e){ console.warn('beforeunload listener attach failed', e); }
-
 })();
 
 // --- GANTI BLOK FUNGSI LOGIN/REGISTER LAMA DENGAN INI ---
@@ -1435,9 +1341,9 @@ setTimeout(()=>{
 
     try{ if(typeof upsertProfileFromOAuth === 'function') await upsertProfileFromOAuth(); }catch(e){ console.warn('upsertProfileFromOAuth failed', e); }
 
-    // Note: loadProgressFromSupabase() and flushProgressQueue() are now called
-    // in the progress module's own init (above) so we don't duplicate the calls here.
-    
+    try{ if(typeof loadProgressFromSupabase === 'function') await loadProgressFromSupabase(); }catch(e){ console.warn('loadProgressFromSupabase failed', e); }
+    // Attempt to flush any locally queued progress for this user
+    try{ if(typeof flushProgressQueue === 'function') await flushProgressQueue(); }catch(e){ console.warn('flushProgressQueue failed', e); }
     try{ if(typeof showProfileView === 'function') await showProfileView(); }catch(e){ console.warn('showProfileView failed', e); }
 
     // re-attach DOMContentLoaded fallback in case consumers expect it
