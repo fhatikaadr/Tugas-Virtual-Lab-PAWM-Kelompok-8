@@ -29,6 +29,10 @@ document.querySelectorAll('.tab-button').forEach(btn=>btn.addEventListener('clic
   if(btn.dataset.page === 'vlab'){
     setTimeout(()=>{ try{ if(window.vlabRefresh) window.vlabRefresh(); }catch(e){} },120);
   }
+  // if profile tab opened, refresh profile data
+  if(btn.dataset.page === 'profile'){
+    setTimeout(()=>{ try{ if(window.showProfileView) window.showProfileView(); }catch(e){ console.warn('showProfileView call failed', e); } },50);
+  }
   // persist active page to session storage
   try{ sessionStorage.setItem('pysphere_active_page', btn.dataset.page); }catch(e){}
 }));
@@ -1345,6 +1349,9 @@ setTimeout(()=>{
 
   // small helper to escape text for insertion into HTML
   function escapeHtml(s){ if(!s && s!==0) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+
+  // Expose showProfileView to window so it can be called from tab navigation
+  window.showProfileView = showProfileView;
 
   // open pages from profile
   if(openLogin) openLogin.addEventListener('click', ()=>{ document.querySelectorAll('.page').forEach(p=>p.classList.add('hidden')); el('login-page').classList.remove('hidden'); });
