@@ -19,7 +19,7 @@
       </div>
       <!-- Google OAuth button -->
       <div class="mt-4 flex justify-center">
-  <button id="login-google" class="vlab-button bg-white border px-6 py-2 rounded-md flex items-center gap-2 justify-center whitespace-nowrap">
+  <button id="login-google" class="vlab-button bg-white border px-6 py-2 rounded-md inline-flex items-center gap-2 justify-center whitespace-nowrap">
           <!-- External PNG (place the file at /src/img/google-logo.png). If missing, the image will be hidden. -->
           <img src="/src/img/google-logo.png" alt="Google" style="height:20px;width:20px;object-fit:contain;" onerror="this.style.display='none'">
           <span>Login with Google</span>
@@ -54,24 +54,6 @@
       });
     })();
   </script>
-  <script>
-    // Ensure the Google button matches the width of the Login button above it
-    (function(){
-      function syncGoogleBtnWidth(){
-        try{
-          const loginBtn = document.querySelector('a[href="/login"]');
-          const googleBtn = document.getElementById('login-google');
-          if(!loginBtn || !googleBtn) return;
-          const w = loginBtn.getBoundingClientRect().width;
-          // apply same width to google button so they match visually
-          googleBtn.style.width = Math.round(w) + 'px';
-        }catch(e){/* ignore */}
-      }
-      window.addEventListener('load', syncGoogleBtnWidth);
-      window.addEventListener('resize', function(){ setTimeout(syncGoogleBtnWidth, 80); });
-      // call once in case script runs after load
-      setTimeout(syncGoogleBtnWidth, 150);
-    })();
-  </script>
+  
 </body>
 </html>

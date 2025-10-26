@@ -822,6 +822,7 @@ setTimeout(()=>{
 // --- GANTI BLOK FUNGSI MODUL LAMA DENGAN INI ---
 (function(){
   const MODULES = ['getaran','ghs','bandul','pegas'];
+  const DEFAULT_MATERI_PROGRESS = { ghs: false, pegas: false, bandul: false, getaran: false };
   let state = {}; // Ini akan menyimpan progress, misal: {"getaran": true}
   let loaded = false; // Flag agar tidak double-load
   let user_id = null; // ID user yang sedang login
@@ -884,14 +885,16 @@ setTimeout(()=>{
       // If the stored value was empty (no keys), persist a default object
       const hasAnyKey = Object.keys(mp || {}).length > 0;
       if (!hasAnyKey) {
-        const defaultPayload = {};
-        MODULES.forEach(m => { defaultPayload[m] = false; });
         try{
           // try to persist default so other clients see it
           // Upsert into the detected table (fallback to 'profile')
           const targetTable = (fetched && fetched.table) ? fetched.table : 'profile';
-          await supabase.from(targetTable).upsert({ id: user_id, materi_progress: defaultPayload }, { onConflict: 'id' });
-          console.debug('loadProgressFromSupabase: wrote default materi_progress for user', user_id);
+          const { error: upErr, data: upData } = await supabase.from(targetTable).upsert({ id: user_id, materi_progress: DEFAULT_MATERI_PROGRESS }, { onConflict: 'id' }).select();
+          if(upErr) throw upErr;
+          console.debug('loadProgressFromSupabase: wrote default materi_progress for user', user_id, upData);
+          // also update local state to defaults
+          state = {};
+          MODULES.forEach(m => { state[m] = !!DEFAULT_MATERI_PROGRESS[m]; });
         }catch(e){ console.warn('loadProgressFromSupabase: failed to write default materi_progress', e); }
       }
     } else if (error) {
@@ -910,8 +913,9 @@ setTimeout(()=>{
     try {
       // Ensure we persist an object with all module keys explicitly set
       // so other clients / UI can rely on presence of keys.
-      const payload = {};
-      MODULES.forEach(m => { payload[m] = !!state[m]; });
+  // Normalize payload: ensure all keys present (use defaults then override with current state)
+  const payload = Object.assign({}, DEFAULT_MATERI_PROGRESS);
+  MODULES.forEach(m => { payload[m] = !!state[m]; });
 
       console.debug('saveProgressToSupabase: user_id=', user_id, 'payload=', payload);
 
@@ -956,8 +960,10 @@ setTimeout(()=>{
 
   function enqueueProgress(payload){
     try{
+      // Normalize queued payload so it always contains the expected keys
+      const normalized = Object.assign({}, DEFAULT_MATERI_PROGRESS, payload || {});
       const q = JSON.parse(localStorage.getItem(QUEUE_KEY) || '[]');
-      q.push({ ts: Date.now(), user_id: user_id, payload });
+      q.push({ ts: Date.now(), user_id: user_id, payload: normalized });
       localStorage.setItem(QUEUE_KEY, JSON.stringify(q));
       console.debug('enqueueProgress saved to local queue', payload);
     }catch(e){ console.warn('enqueueProgress failed', e); }
@@ -1314,8 +1320,8 @@ setTimeout(()=>{
           }
         }catch(e){ /* ignore and attempt upsert anyway */ }
 
-        // Build payload; include email as well to be helpful for DB
-        const payload = { id: user.id, full_name: oauthName, email: user.email || null };
+  // Build payload; include email and default materi_progress so new profiles have expected keys
+  const payload = { id: user.id, full_name: oauthName, email: user.email || null, materi_progress: DEFAULT_MATERI_PROGRESS };
         const tables = ['profiles','profile'];
         for(const tbl of tables){
           try{
