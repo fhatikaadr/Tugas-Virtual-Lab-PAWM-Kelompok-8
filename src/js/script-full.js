@@ -1069,15 +1069,23 @@ setTimeout(()=>{
       try{ e.stopImmediatePropagation(); }catch(_){ /* ignore */ }
       const mod = btn.dataset.module;
       if(!mod) return;
-      state[mod] = !state[mod]; // Update state lokal
-      updateProgressUI();      // Update UI
-      refreshButtons();        // Update tombol
-      // Build normalized payload and persist immediately to localStorage
+      // Optimistic UI: toggle local state and show a saving indicator on the clicked button
+      const prev = !!state[mod];
+      state[mod] = !prev;
+      updateProgressUI();
+      // show temporary saving text on this button only
+      const originalText = btn.textContent;
+      btn.disabled = true;
+      btn.classList.add('opacity-60');
+      btn.textContent = 'Menyimpan...';
+
+      // Build normalized payload and persist immediately to localStorage (per-user key when available)
       const payload = {};
       MODULES.forEach(m => { payload[m] = !!state[m]; });
-  try{ const lpKey = localProgressKey(user_id); localStorage.setItem(lpKey, JSON.stringify(payload)); }catch(e){/* ignore */}
+      try{ const lpKey = localProgressKey(user_id); localStorage.setItem(lpKey, JSON.stringify(payload)); }catch(e){/* ignore */}
 
-      // If supabase/client not available or saving fails, enqueue locally (we still have local copy)
+      // Try to save to Supabase; if unavailable or save fails, enqueue locally
+      let saved = false;
       if (typeof supabase === 'undefined' || !user_id) {
         enqueueProgress(payload);
       } else {
@@ -1086,12 +1094,24 @@ setTimeout(()=>{
           if (!ok) {
             enqueueProgress(payload);
           } else {
+            saved = true;
             try{ const lpKey = localProgressKey(user_id); localStorage.removeItem(lpKey); }catch(_){/* ignore */}
           }
         }catch(e){
           console.warn('saveProgress failed, enqueueing', e);
           enqueueProgress(payload);
         }
+      }
+
+      // restore button state and refresh UI to reflect authoritative saved state
+      try{
+        btn.disabled = false;
+        btn.classList.remove('opacity-60');
+        // refreshButtons will set correct text & color per state
+        refreshButtons();
+      }catch(e){
+        // fallback: restore original text
+        btn.textContent = originalText;
       }
   }, { passive: true, capture: true });
   });
