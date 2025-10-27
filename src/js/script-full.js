@@ -1180,9 +1180,16 @@ setTimeout(()=>{
       if(fetchedProfile && fetchedProfile.error) console.debug('showProfileView: profile fetch error', fetchedProfile.error);
 
   // Prefer full_name from the app's profile table; fall back to OAuth metadata (Google name), then email
-  let displayName = (profileData && profileData.full_name) ? profileData.full_name :
-        (user && user.user_metadata && (user.user_metadata.full_name || user.user_metadata.name)) ||
-        user.email;
+  let displayName = null;
+  if (profileData && profileData.full_name) {
+    const n = String(profileData.full_name || '').trim();
+    if (n && !/^(unknown|null|undefined|<null>)$/i.test(n)) displayName = n;
+  }
+  if (!displayName && user && user.user_metadata) {
+    const meta = user.user_metadata || {};
+    displayName = meta.full_name || meta.name || meta.user_name || null;
+  }
+  if (!displayName) displayName = user && user.email ? user.email : 'Pengguna';
 
       el('profile-name').textContent = displayName;
       el('profile-email').textContent = user.email || '';
@@ -1309,10 +1316,25 @@ setTimeout(()=>{
 
   // --- LOGOUT BARU ---
   if(logoutBtn) logoutBtn.addEventListener('click', async ()=>{
-    await supabase.auth.signOut();
-    // Clear stored active page and redirect ke halaman index setelah logout
+    try{
+      // wait for SDK if necessary
+      await (window.__supabaseReady || Promise.resolve());
+      if (typeof supabase !== 'undefined' && supabase && supabase.auth && typeof supabase.auth.signOut === 'function'){
+        const { error } = await supabase.auth.signOut();
+        if(error) console.warn('supabase.signOut returned error', error);
+      } else {
+        console.warn('supabase client not available during logout; proceeding with client-side cleanup');
+      }
+    }catch(e){
+      console.warn('Logout failed or threw an exception', e);
+    }
+
+    // ensure we clear local active page and force navigation regardless of signOut success
     try{ sessionStorage.removeItem('pysphere_active_page'); }catch(e){}
-    window.location.href = '/'; 
+    // reset local user tracking state to be safe
+    try{ user_id = null; loaded = false; }catch(e){}
+    // navigate back to index (this will re-run auth guard there)
+    try{ window.location.href = '/'; }catch(e){ window.location.reload(); }
   });
 
   // initialize Supabase-dependent pieces after the SDK is ready
