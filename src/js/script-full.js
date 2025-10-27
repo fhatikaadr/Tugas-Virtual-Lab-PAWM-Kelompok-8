@@ -1186,6 +1186,10 @@ setTimeout(()=>{
 
 // --- FUNGSI PROFIL BARU ---
   async function showProfileView(){
+    // Show loading state
+    const loggedInEl = el('logged-in');
+    const notLoggedEl = el('not-logged');
+    
     // Ensure Supabase SDK is ready and attempt to get the current user/session
     try{ await (window.__supabaseReady || Promise.resolve()); }catch(e){ console.warn('supabase init wait failed in showProfileView', e); }
 
@@ -1375,19 +1379,17 @@ setTimeout(()=>{
     try{ sessionStorage.removeItem('pysphere_active_page'); }catch(e){}
     // reset local user tracking state to be safe
     try{ user_id = null; loaded = false; }catch(e){}
-    // navigate back to index (this will re-run auth guard there). Use replace() so back button doesn't return to signed-in state.
+    
+    // Navigate to index.html (welcome page) immediately
     try{
-      window.location.replace('/');
-      // fallback: if hosting serves index under /src/html/index.html (local dev), try that after a short delay
-      setTimeout(()=>{
-        try{
-          const p = window.location.pathname || '';
-          if(p !== '/' && !/index\.html$/i.test(p)){
-            window.location.replace('/src/html/index.html');
-          }
-        }catch(e){}
-      }, 200);
-    }catch(e){ try{ window.location.href = '/src/html/index.html'; }catch(_){ window.location.reload(); } }
+      window.location.replace('/src/html/index.html');
+    }catch(e){ 
+      // Fallback jika replace gagal
+      try{ window.location.href = '/src/html/index.html'; }catch(_){ 
+        // Last resort: try root
+        try{ window.location.replace('/'); }catch(__){ window.location.reload(); }
+      } 
+    }
   });
 
   // initialize Supabase-dependent pieces after the SDK is ready
@@ -1460,7 +1462,24 @@ setTimeout(()=>{
             loaded = false; // force reload
             try{ if(typeof loadProgressFromSupabase === 'function') await loadProgressFromSupabase(); }catch(e){ console.warn('auth listener: loadProgressFromSupabase failed', e); }
             try{ if(typeof flushProgressQueue === 'function') await flushProgressQueue(); }catch(e){ console.warn('auth listener: flushProgressQueue failed', e); }
+            
+            // Immediately show profile view after login
             try{ if(typeof showProfileView === 'function') await showProfileView(); }catch(e){ console.warn('auth listener: showProfileView failed', e); }
+            
+            // Auto-navigate to profile tab after login to show user info
+            setTimeout(() => {
+              try{
+                const profileBtn = document.querySelector('.tab-button[data-page="profile"]');
+                if(profileBtn) {
+                  profileBtn.click();
+                  // Refresh profile view again to ensure data is loaded
+                  setTimeout(() => {
+                    try{ if(typeof showProfileView === 'function') showProfileView(); }catch(e){}
+                  }, 300);
+                }
+              }catch(e){ console.warn('Failed to auto-navigate to profile', e); }
+            }, 100);
+            
           } else if(event === 'SIGNED_OUT'){
             // User signed out: clear user_id and switch to anonymous local progress
             user_id = null;
