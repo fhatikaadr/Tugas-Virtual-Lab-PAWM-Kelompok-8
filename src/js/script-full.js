@@ -921,7 +921,8 @@ setTimeout(()=>{
 
 // --- FUNGSI BARU: Menyimpan progress ke Supabase ---
   async function saveProgressToSupabase() {
-    if (!user_id || !loaded) return false; 
+    // require a logged-in user; allow saving even if 'loaded' flag hasn't been set yet
+    if (!user_id) return false; 
 
     const sup = (typeof window !== 'undefined' && window.supabase) ? window.supabase : (typeof supabase !== 'undefined' ? supabase : null);
     if(!sup) {
@@ -1114,11 +1115,17 @@ setTimeout(()=>{
       btn.classList.add('opacity-60');
       btn.textContent = 'Menyimpan...';
 
-      // Build normalized payload and persist immediately to localStorage (per-user key when available)
+      // Build normalized payload. For anonymous users persist locally; for logged-in users
+      // prefer server as source-of-truth and do NOT write per-user state to localStorage.
       const payload = {};
       MODULES.forEach(m => { payload[m] = !!state[m]; });
       console.log('mark-read clicked:', mod, 'new state:', state);
-      try{ const lpKey = localProgressKey(user_id); localStorage.setItem(lpKey, JSON.stringify(payload)); }catch(e){/* ignore */}
+      try{
+        if(!user_id){ // anonymous user -> persist locally under :anon
+          const lpKey = localProgressKey(null);
+          localStorage.setItem(lpKey, JSON.stringify(payload));
+        }
+      }catch(e){/* ignore */}
 
       // Try to save to Supabase; if unavailable or save fails, enqueue locally
       let saved = false;
@@ -1134,7 +1141,7 @@ setTimeout(()=>{
           } else {
             saved = true;
             console.log('Progress saved to DB successfully!');
-            try{ const lpKey = localProgressKey(user_id); localStorage.removeItem(lpKey); }catch(_){/* ignore */}
+            // do not remove per-user localStorage because we don't store per-user keys anymore
           }
         }catch(e){
           console.warn('saveProgress failed, enqueueing', e);
