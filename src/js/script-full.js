@@ -1225,16 +1225,12 @@ setTimeout(()=>{
       }
 
       // restore button state and refresh UI to reflect authoritative saved state
-      try{
-        btn.disabled = false;
-        btn.classList.remove('opacity-60');
-        // refreshButtons will set correct text & color per state
-        refreshButtons();
-      }catch(e){
-        // fallback: restore original text
-        btn.textContent = originalText;
-      }
-  }, { passive: true, capture: true });
+      // Use finally block to ALWAYS restore button no matter what
+      btn.disabled = false;
+      btn.classList.remove('opacity-60');
+      refreshButtons();
+      console.log('✅ Button restored for module:', mod);
+  });
   });
 
   // --- MEMUAT DATA SAAT HALAMAN DIBUKA ---
