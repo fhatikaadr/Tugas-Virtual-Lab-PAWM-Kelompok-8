@@ -7,26 +7,186 @@
   <title>PhySphere — Login</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="/src/css/style.css">
+  <style>
+    body {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+      position: relative;
+      overflow: hidden;
+    }
+    
+    /* Animated background particles */
+    .particle {
+      position: absolute;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.3);
+      animation: float 20s infinite ease-in-out;
+    }
+    
+    @keyframes float {
+      0%, 100% { transform: translate(0, 0) rotate(0deg); opacity: 0; }
+      10% { opacity: 1; }
+      90% { opacity: 1; }
+      100% { transform: translate(var(--tx), var(--ty)) rotate(360deg); opacity: 0; }
+    }
+    
+    /* Wave animation */
+    .wave {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 200%;
+      height: 200px;
+      background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 120'%3E%3Cpath d='M321.39,56.44c58-10.79,114.16-30.13,172-41.86,82.39-16.72,168.19-17.73,250.45-.39C823.78,31,906.67,72,985.66,92.83c70.05,18.48,146.53,26.09,214.34,3V0H0V27.35A600.21,600.21,0,0,0,321.39,56.44Z' fill='rgba(255,255,255,0.1)'/%3E%3C/svg%3E");
+      background-size: 50% 100%;
+      animation: wave 15s linear infinite;
+    }
+    
+    @keyframes wave {
+      0% { transform: translateX(0); }
+      100% { transform: translateX(-50%); }
+    }
+    
+    /* Glassmorphism card */
+    .glass-card {
+      background: rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(10px);
+      border-radius: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+      padding: 2.5rem;
+      animation: slideUp 0.6s ease-out;
+    }
+    
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(30px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    /* Input styles */
+    .physics-input {
+      background: rgba(255, 255, 255, 0.9);
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-radius: 12px;
+      padding: 0.75rem 1rem;
+      width: 100%;
+      transition: all 0.3s ease;
+      font-size: 1rem;
+    }
+    
+    .physics-input:focus {
+      outline: none;
+      border-color: #667eea;
+      background: rgba(255, 255, 255, 1);
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+    
+    /* Button styles */
+    .physics-btn {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      padding: 0.875rem 2rem;
+      font-weight: 600;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .physics-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 25px rgba(102, 126, 234, 0.5);
+    }
+    
+    .physics-btn:active {
+      transform: translateY(0);
+    }
+    
+    .physics-btn-secondary {
+      background: rgba(255, 255, 255, 0.9);
+      color: #667eea;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+    }
+    
+    .physics-btn-secondary:hover {
+      background: rgba(255, 255, 255, 1);
+      border-color: #667eea;
+    }
+    
+    /* Logo animation */
+    .logo-orbit {
+      animation: orbit 4s linear infinite;
+    }
+    
+    @keyframes orbit {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+  </style>
 </head>
-<body class="min-h-screen flex items-center justify-center bg-gradient-to-b from-purple-50 to-yellow-50">
-  <div class="max-w-md w-full p-6">
-    <div class="card">
-      <h2 class="text-xl font-bold text-purple-800 mb-3">Masuk ke PhySphere</h2>
+<body class="min-h-screen flex items-center justify-center">
+  <!-- Animated particles -->
+  <div class="particle" style="width: 60px; height: 60px; left: 10%; top: 20%; --tx: 100px; --ty: -150px; animation-delay: 0s;"></div>
+  <div class="particle" style="width: 40px; height: 40px; left: 80%; top: 30%; --tx: -120px; --ty: 200px; animation-delay: 2s;"></div>
+  <div class="particle" style="width: 80px; height: 80px; left: 50%; top: 10%; --tx: 80px; --ty: 180px; animation-delay: 4s;"></div>
+  <div class="particle" style="width: 30px; height: 30px; left: 20%; top: 70%; --tx: -90px; --ty: -100px; animation-delay: 1s;"></div>
+  <div class="particle" style="width: 50px; height: 50px; left: 70%; top: 80%; --tx: 110px; --ty: -130px; animation-delay: 3s;"></div>
+  
+  <!-- Wave -->
+  <div class="wave"></div>
+  
+  <div class="max-w-md w-full p-6 relative z-10">
+    <div class="glass-card">
+      <!-- Logo/Icon -->
+      <div class="flex justify-center mb-6">
+        <div class="relative">
+          <div class="w-20 h-20 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center shadow-lg">
+            <svg class="w-10 h-10 text-white logo-orbit" fill="currentColor" viewBox="0 0 20 20">
+              <circle cx="10" cy="10" r="2" fill="white"/>
+              <circle cx="10" cy="10" r="7" fill="none" stroke="white" stroke-width="1.5"/>
+              <circle cx="10" cy="3" r="1.5" fill="white"/>
+              <circle cx="10" cy="17" r="1.5" fill="white"/>
+              <circle cx="3" cy="10" r="1.5" fill="white"/>
+              <circle cx="17" cy="10" r="1.5" fill="white"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+      
+      <h2 class="text-3xl font-bold text-white text-center mb-2">PhySphere</h2>
+      <p class="text-white/80 text-center mb-8 text-sm">Masuk ke portal pembelajaran fisika</p>
 
-      <label class="block text-sm text-slate-600">Email</label>
-      <input id="login-email" type="email" class="mt-2 px-3 py-2 border rounded w-full" placeholder="you@example.com">
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-white/90 mb-2">📧 Email</label>
+          <input id="login-email" type="email" class="physics-input" placeholder="nama@email.com">
+        </div>
 
-      <label class="block text-sm text-slate-600 mt-3">Password</label>
-      <input id="login-password" type="password" class="mt-2 px-3 py-2 border rounded w-full" placeholder="••••••">
+        <div>
+          <label class="block text-sm font-medium text-white/90 mb-2">🔐 Password</label>
+          <input id="login-password" type="password" class="physics-input" placeholder="••••••••">
+        </div>
 
-      <div class="mt-4 flex gap-2">
-        <button id="login-submit" class="vlab-button bg-blue-600 text-white">Masuk</button>
-  <a href="/" class="vlab-button bg-white border">Kembali</a>
+        <div id="login-msg" class="text-sm text-yellow-200 font-medium min-h-[1.25rem]"></div>
+
+        <div class="flex gap-3 pt-2">
+          <button id="login-submit" class="physics-btn flex-1">
+            Masuk
+          </button>
+          <a href="/" class="physics-btn physics-btn-secondary flex-shrink-0">
+            Kembali
+          </a>
+        </div>
       </div>
 
-  <div id="login-msg" class="text-sm text-red-500 mt-3"></div>
-  <hr class="my-4">
-  <div class="text-sm text-slate-600">Belum punya akun? <a href="/register" class="text-blue-600 font-semibold">Daftar</a></div>
+      <div class="mt-6 pt-6 border-t border-white/20">
+        <p class="text-center text-white/80 text-sm">
+          Belum punya akun? 
+          <a href="/register" class="text-yellow-200 font-semibold hover:text-yellow-100 transition-colors">Daftar Sekarang</a>
+        </p>
+      </div>
     </div>
   </div>
 
