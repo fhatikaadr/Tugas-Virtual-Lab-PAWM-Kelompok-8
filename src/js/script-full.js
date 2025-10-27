@@ -1355,8 +1355,19 @@ setTimeout(()=>{
     try{ sessionStorage.removeItem('pysphere_active_page'); }catch(e){}
     // reset local user tracking state to be safe
     try{ user_id = null; loaded = false; }catch(e){}
-    // navigate back to index (this will re-run auth guard there)
-    try{ window.location.href = '/'; }catch(e){ window.location.reload(); }
+    // navigate back to index (this will re-run auth guard there). Use replace() so back button doesn't return to signed-in state.
+    try{
+      window.location.replace('/');
+      // fallback: if hosting serves index under /src/html/index.html (local dev), try that after a short delay
+      setTimeout(()=>{
+        try{
+          const p = window.location.pathname || '';
+          if(p !== '/' && !/index\.html$/i.test(p)){
+            window.location.replace('/src/html/index.html');
+          }
+        }catch(e){}
+      }, 200);
+    }catch(e){ try{ window.location.href = '/src/html/index.html'; }catch(_){ window.location.reload(); } }
   });
 
   // initialize Supabase-dependent pieces after the SDK is ready
