@@ -839,7 +839,8 @@ setTimeout(()=>{
 (function(){
   const MODULES = ['getaran','ghs','bandul','pegas'];
   const DEFAULT_MATERI_PROGRESS = { ghs: false, pegas: false, bandul: false, getaran: false };
-  let state = {}; // Ini akan menyimpan progress, misal: {"getaran": true}
+  // Initialize state with all false - user hasn't read anything by default
+  let state = { ghs: false, pegas: false, bandul: false, getaran: false };
   let loaded = false; // Flag agar tidak double-load
   let user_id = null; // ID user yang sedang login
 
@@ -875,29 +876,14 @@ setTimeout(()=>{
         state = {};
         MODULES.forEach(m => { state[m] = !!mp[m]; });
       } else {
+        // No progress data - initialize to all false
         state = {};
+        MODULES.forEach(m => { state[m] = false; });
       }
-      // Merge any locally stored progress (wins over DB until flushed)
-      try{
-        const lpKey = localProgressKey(user_id);
-        const localRaw = localStorage.getItem(lpKey);
-        if(localRaw){
-          const localObj = JSON.parse(localRaw);
-          if(localObj && typeof localObj === 'object'){
-            MODULES.forEach(m => {
-              if(Object.prototype.hasOwnProperty.call(localObj, m)) state[m] = !!localObj[m];
-            });
-            // Try to persist merged local -> server immediately if possible
-            try{
-              if(typeof supabase !== 'undefined' && user_id){
-                // attempt to save; if succeeds, remove local copy
-                const saved = await saveProgressToSupabase();
-                if(saved) localStorage.removeItem(lpKey);
-              }
-            }catch(e){ /* ignore flush failure; queue exists */ }
-          }
-        }
-      }catch(e){ /* ignore local parse errors */ }
+      
+      // DON'T merge with local storage anymore - it causes "Sudah Dibaca" to appear incorrectly
+      // Only use database as source of truth for logged-in users
+      
       // If the stored value was empty (no keys), persist a default object
       const hasAnyKey = Object.keys(mp || {}).length > 0;
       if (!hasAnyKey) {
@@ -1087,22 +1073,13 @@ setTimeout(()=>{
     showModule(MODULES[0]);
   })();
 
-  // --- Load anonymous local progress (so unsigned users keep progress across refresh) ---
-  // We intentionally only load the ':anon' key here into the in-memory `state` so
-  // a) users who are not logged in still see their progress after refresh, and
-  // b) we do not overwrite per-user server-backed progress (which is merged after login).
-  try{
-    const anonKey = localProgressKey(null);
-    const anonRaw = localStorage.getItem(anonKey);
-    if(anonRaw){
-      const anonObj = JSON.parse(anonRaw);
-      if(anonObj && typeof anonObj === 'object'){
-        MODULES.forEach(m => { state[m] = !!anonObj[m]; });
-        // reflect immediately in UI
-        try{ updateProgressUI(); refreshButtons(); }catch(e){}
-      }
-    }
-  }catch(e){ /* non-fatal: ignore malformed local data */ }
+  // --- INITIALIZATION: DON'T auto-load anonymous progress ---
+  // State defaults to all false. Only load progress after we know the user's identity.
+  // Anonymous progress will be loaded inside loadProgressFromSupabase() when needed.
+  // This prevents showing "Sudah Dibaca" for new users by mistake.
+  
+  // Initialize UI with default state (all false = "Tandai Dibaca")
+  try{ updateProgressUI(); refreshButtons(); }catch(e){ console.warn('Initial UI refresh failed', e); }
 
   // NOTE: Do not apply global/local progress before knowing which user is active.
   // Applying a shared local copy caused progress from one account to appear when
@@ -1470,22 +1447,15 @@ setTimeout(()=>{
             }, 100);
             
           } else if(event === 'SIGNED_OUT'){
-            // User signed out: clear user_id and switch to anonymous local progress
+            // User signed out: clear user_id and reset state to all false
             user_id = null;
             loaded = false;
             try{
-              // reset state to false for all modules, then load ':anon' local progress if present
+              // Reset state to all false - clean slate
               state = {};
               MODULES.forEach(m => { state[m] = false; });
-              const anonKey = localProgressKey(null);
-              const anonRaw = localStorage.getItem(anonKey);
-              if(anonRaw){
-                const anonObj = JSON.parse(anonRaw);
-                if(anonObj && typeof anonObj === 'object'){
-                  MODULES.forEach(m => { state[m] = !!anonObj[m]; });
-                }
-              }
-            }catch(e){ console.warn('auth listener: failed loading anon progress', e); }
+              // Don't load anonymous progress - keep it clean
+            }catch(e){ console.warn('auth listener: failed resetting state', e); }
             try{ updateProgressUI(); refreshButtons(); }catch(e){}
             try{ if(typeof showProfileView === 'function') await showProfileView(); }catch(e){ console.warn('auth listener: showProfileView failed after signout', e); }
           }
