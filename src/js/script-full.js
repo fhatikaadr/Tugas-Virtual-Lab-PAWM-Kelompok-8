@@ -1144,11 +1144,11 @@ setTimeout(()=>{
         // Not logged in: require login so progress is saved per-account.
         // Redirect immediately to the login page.
         try{
-          window.location.href = '/login.html';
+          window.location.href = 'login.html';
           return;
         }catch(e){
           // fallback to index if login path unavailable
-          try{ window.location.href = '/'; return; }catch(_){ /* ignore */ }
+          try{ window.location.href = 'index.html'; return; }catch(_){ /* ignore */ }
         }
       } else {
         try{
@@ -1427,8 +1427,9 @@ setTimeout(()=>{
       }catch(e){ console.warn('Background signOut failed', e); }
     })();
     
-    // LANGSUNG redirect ke halaman selamat datang - TIDAK MENUNGGU!
-    window.location.href = '/src/html/index.html';
+  // LANGSUNG redirect ke halaman selamat datang - TIDAK MENUNGGU!
+  // Use relative path so it works when opened from filesystem
+  window.location.href = 'index.html';
   });
 
   // initialize Supabase-dependent pieces after the SDK is ready
