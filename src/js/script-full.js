@@ -33,7 +33,7 @@ document.querySelectorAll('.tab-button').forEach(btn=>btn.addEventListener('clic
   document.querySelectorAll('.tab-button').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
   // If the user opened the Profile tab, refresh profile view (ensure auth state is reflected)
-  try{ if(btn.dataset.page === 'profile' && typeof showProfileView === 'function') showProfileView(); }catch(e){}
+  try{ if(btn.dataset.page === 'profile' && typeof window.showProfileView === 'function') window.showProfileView(); }catch(e){}
   // if vlab tab opened, ensure canvas resizes & redraws after layout (no autoplay)
   if(btn.dataset.page === 'vlab'){
     setTimeout(()=>{ try{ if(window.vlabRefresh) window.vlabRefresh(); }catch(e){} },120);
@@ -1180,8 +1180,8 @@ setTimeout(()=>{
 
   function showPage(name){ document.querySelectorAll('.page').forEach(p=>p.classList.add('hidden')); const target = document.getElementById(name+'-page') || document.getElementById(name+'-page'); if(target) target.classList.remove('hidden'); }
 
-// --- FUNGSI PROFIL BARU ---
-  async function showProfileView(){
+// --- FUNGSI PROFIL BARU (GLOBAL) ---
+  window.showProfileView = async function showProfileView(){
     // Show loading state
     const loggedInEl = el('logged-in');
     const notLoggedEl = el('not-logged');
@@ -1348,8 +1348,8 @@ setTimeout(()=>{
   // open pages from profile
   if(openLogin) openLogin.addEventListener('click', ()=>{ document.querySelectorAll('.page').forEach(p=>p.classList.add('hidden')); el('login-page').classList.remove('hidden'); });
   if(openReg) openReg.addEventListener('click', ()=>{ document.querySelectorAll('.page').forEach(p=>p.classList.add('hidden')); el('register-page').classList.remove('hidden'); });
-  if(backFromLogin) backFromLogin.addEventListener('click', ()=>{ document.querySelectorAll('.page').forEach(p=>p.classList.add('hidden')); el('profile-page').classList.remove('hidden'); showProfileView(); });
-  if(backFromReg) backFromReg.addEventListener('click', ()=>{ document.querySelectorAll('.page').forEach(p=>p.classList.add('hidden')); el('profile-page').classList.remove('hidden'); showProfileView(); });
+  if(backFromLogin) backFromLogin.addEventListener('click', ()=>{ document.querySelectorAll('.page').forEach(p=>p.classList.add('hidden')); el('profile-page').classList.remove('hidden'); window.showProfileView(); });
+  if(backFromReg) backFromReg.addEventListener('click', ()=>{ document.querySelectorAll('.page').forEach(p=>p.classList.add('hidden')); el('profile-page').classList.remove('hidden'); window.showProfileView(); });
 
   // register (logika dipindah ke register.html)
   // login (logika dipindah ke login.html)
@@ -1431,7 +1431,7 @@ setTimeout(()=>{
     try{ if(typeof loadProgressFromSupabase === 'function') await loadProgressFromSupabase(); }catch(e){ console.warn('loadProgressFromSupabase failed', e); }
     // Attempt to flush any locally queued progress for this user
     try{ if(typeof flushProgressQueue === 'function') await flushProgressQueue(); }catch(e){ console.warn('flushProgressQueue failed', e); }
-    try{ if(typeof showProfileView === 'function') await showProfileView(); }catch(e){ console.warn('showProfileView failed', e); }
+    try{ if(typeof window.showProfileView === 'function') await window.showProfileView(); }catch(e){ console.warn('showProfileView failed', e); }
 
     // Subscribe to auth state changes so we can switch the in-memory progress state
     // to the currently active account (prevents anonymous/local data from leaking
@@ -1449,7 +1449,7 @@ setTimeout(()=>{
             try{ if(typeof flushProgressQueue === 'function') await flushProgressQueue(); }catch(e){ console.warn('auth listener: flushProgressQueue failed', e); }
             
             // Immediately show profile view after login
-            try{ if(typeof showProfileView === 'function') await showProfileView(); }catch(e){ console.warn('auth listener: showProfileView failed', e); }
+            try{ if(typeof window.showProfileView === 'function') await window.showProfileView(); }catch(e){ console.warn('auth listener: showProfileView failed', e); }
             
             // Auto-navigate to profile tab after login to show user info
             setTimeout(() => {
@@ -1459,7 +1459,7 @@ setTimeout(()=>{
                   profileBtn.click();
                   // Refresh profile view again to ensure data is loaded
                   setTimeout(() => {
-                    try{ if(typeof showProfileView === 'function') showProfileView(); }catch(e){}
+                    try{ if(typeof window.showProfileView === 'function') window.showProfileView(); }catch(e){}
                   }, 300);
                 }
               }catch(e){ console.warn('Failed to auto-navigate to profile', e); }
@@ -1476,7 +1476,7 @@ setTimeout(()=>{
               // Don't load anonymous progress - keep it clean
             }catch(e){ console.warn('auth listener: failed resetting state', e); }
             try{ updateProgressUI(); refreshButtons(); }catch(e){}
-            try{ if(typeof showProfileView === 'function') await showProfileView(); }catch(e){ console.warn('auth listener: showProfileView failed after signout', e); }
+            try{ if(typeof window.showProfileView === 'function') await window.showProfileView(); }catch(e){ console.warn('auth listener: showProfileView failed after signout', e); }
           }
         });
         // store subscription so other code can unsubscribe if needed
