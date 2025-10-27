@@ -10,6 +10,7 @@ const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 // Initialize the Supabase client. Some CDNs or caches might not have
 // `createClient` available immediately; handle both cases.
 function _initSupabaseClient(){
+	// Preferred fast path: if a global createClient exists (some UMD builds)
 	try {
 		if (typeof createClient !== 'undefined') {
 			window.supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -17,73 +18,69 @@ function _initSupabaseClient(){
 		}
 	} catch(e){}
 
-		// If createClient isn't present, try to dynamically load a UMD bundle.
-		// Try a local copy first (/src/js/supabase.min.js) so deployments that
-		// block the CDN still work. If local isn't present or fails, fall back
-		// to the CDN.
-		return new Promise((resolve, reject) => {
-			const tryScript = (src) => new Promise((res, rej) => {
-				const existing = document.querySelector('script[data-supabase-umd][src="' + src + '"]');
-				if (existing) {
-					if (typeof createClient !== 'undefined') {
-						try { window.supabase = createClient(SUPABASE_URL, SUPABASE_KEY); res(window.supabase); } catch(e){ rej(e); }
-						return;
-					}
-					existing.addEventListener('load', () => {
-						try { window.supabase = createClient(SUPABASE_URL, SUPABASE_KEY); res(window.supabase); } catch(err){ rej(err); }
-					});
-					existing.addEventListener('error', rej);
-					return;
-				}
+	// If window.supabase namespace already exists and exposes createClient (UMD namespace),
+	// call it to produce a client instance and assign back to window.supabase.
+	try {
+		if (typeof window.supabase !== 'undefined' && typeof window.supabase.createClient === 'function') {
+			// note: this will replace the namespace with the client instance
+			window.supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+			return Promise.resolve(window.supabase);
+		}
+	} catch(e){}
 
-				const s = document.createElement('script');
-				s.src = src;
-				s.async = true;
-				s.setAttribute('data-supabase-umd','1');
-				s.onload = () => {
-					try { window.supabase = createClient(SUPABASE_URL, SUPABASE_KEY); res(window.supabase); } catch(err){ rej(err); }
-				};
-				s.onerror = (e) => rej(new Error('Failed to load script: ' + src));
-				document.head.appendChild(s);
-			});
-
-				// Prefer dynamic ESM imports for local files (some local copies are ESM).
-				// Try dynamic import of a local ESM first; if that fails, try the UMD bundle
-				// from a CDN, and finally fall back to dynamic ESM import (+esm) from the CDN.
-				const tryImport = (src) => import(src)
-					.then((m) => {
-						if (m && typeof m.createClient === 'function') {
-							window.supabase = m.createClient(SUPABASE_URL, SUPABASE_KEY);
-							return window.supabase;
+	// Fallback: load a stable UMD bundle from CDN (avoid dynamic +esm imports that can be rewritten to invalid optimized paths)
+	return new Promise((resolve, reject) => {
+		const tryScript = (src) => new Promise((res, rej) => {
+			const existing = document.querySelector('script[data-supabase-umd][src="' + src + '"]');
+			if (existing) {
+				existing.addEventListener('load', () => {
+					try {
+						// After UMD loaded, the global may be either createClient or a supabase namespace
+						if (typeof createClient !== 'undefined') {
+							window.supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+							return res(window.supabase);
 						}
-						throw new Error('Imported module loaded but createClient not found: ' + src);
-					});
+						if (window.supabase && typeof window.supabase.createClient === 'function') {
+							window.supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+							return res(window.supabase);
+						}
+						rej(new Error('Loaded script but createClient/supabase.createClient not found'));
+					} catch(err){ rej(err); }
+				});
+				existing.addEventListener('error', rej);
+				return;
+			}
 
-				// 1) Try dynamic import of local ESM (works if /src/js/supabase.min.js is an ESM bundle)
-				tryImport('/src/js/supabase.min.js')
-					.catch(() => {
-						// 2) If local ESM fails, try to load a UMD bundle via script tag from a CDN
-						// Use the UMD build path which should expose a global createClient.
-						return tryScript('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js');
-					})
-					.catch(() => {
-						// 3) As a last resort attempt dynamic ESM import from jsdelivr (+esm).
-						return import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm')
-							.then((m) => {
-								if (m && typeof m.createClient === 'function') {
-									window.supabase = m.createClient(SUPABASE_URL, SUPABASE_KEY);
-									return window.supabase;
-								}
-								throw new Error('ESM import succeeded but createClient not found');
-							});
-					})
-					.then(resolve)
-					.catch((err) => {
-						// Attach error to a global for debugging and reject.
-						window.__supabaseInitError = err && err.message ? err.message : String(err);
-						reject(err);
-					});
+			const s = document.createElement('script');
+			s.src = src;
+			s.async = true;
+			s.setAttribute('data-supabase-umd','1');
+			s.onload = () => {
+				try {
+					if (typeof createClient !== 'undefined') {
+						window.supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+						return res(window.supabase);
+					}
+					if (window.supabase && typeof window.supabase.createClient === 'function') {
+						window.supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+						return res(window.supabase);
+					}
+					rej(new Error('Loaded script but createClient/supabase.createClient not found'));
+				} catch(err){ rej(err); }
+			};
+			s.onerror = (e) => rej(new Error('Failed to load script: ' + src));
+			document.head.appendChild(s);
 		});
+
+		// Try a known stable UMD CDN first. jsDelivr UMD path is reliable for browser usage.
+		tryScript('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js')
+			.then(resolve)
+			.catch((err) => {
+				// Attach error for debugging and reject
+				window.__supabaseInitError = err && err.message ? err.message : String(err);
+				reject(err);
+			});
+	});
 }
 
 // Start initialization immediately. Consumers can wait on window.__supabaseReady

@@ -1,6 +1,13 @@
 // PhySphere - Full Script (extracted and adapted from original)
 // Global default for materi_progress so all scopes can access it
 try{ window.DEFAULT_MATERI_PROGRESS = window.DEFAULT_MATERI_PROGRESS || { ghs:false, pegas:false, bandul:false, getaran:false }; }catch(e){ var DEFAULT_MATERI_PROGRESS = { ghs:false, pegas:false, bandul:false, getaran:false }; }
+
+// Prevent ReferenceError: supabase is not defined in environments where SDK
+// hasn't loaded yet. Declare a local alias and refresh it once SDK ready.
+var supabase = window.supabase;
+if (window.__supabaseReady && typeof window.__supabaseReady.then === 'function') {
+  window.__supabaseReady.then(() => { try{ supabase = window.supabase; }catch(e){} }).catch(()=>{});
+}
 // --- NAVIGATION ---
 document.querySelectorAll('.tab-button').forEach(btn=>btn.addEventListener('click',()=>{
   // If user tries to open the VLab, block access until materi progress reaches 100%
@@ -477,22 +484,21 @@ window.updateTopicUI = async function(topic){
     const resultEl = document.getElementById('result-'+topic);
     if (!resultEl) return;
     // Ensure Supabase client & auth API are ready before calling
-    if (!supabase || !supabase.auth || typeof supabase.auth.getUser !== 'function') {
-      try { await (window.__supabaseReady || Promise.resolve()); } catch(e) { console.warn('supabase init failed in updateTopicUI', e); }
-    }
-    if (!supabase || !supabase.auth || typeof supabase.auth.getUser !== 'function') {
+    try { await (window.__supabaseReady || Promise.resolve()); } catch(e) { console.warn('supabase init failed in updateTopicUI', e); }
+    const supa = window.supabase;
+    if (!supa || !supa.auth || typeof supa.auth.getUser !== 'function') {
       console.warn('supabase.auth.getUser not available in updateTopicUI; skipping');
       return;
     }
 
     // Ambil data skor dari database
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { user } } = await supa.auth.getUser();
     if (!user) return;
 
     // First try to read per-topic best from `user_best_score` (preferred),
     // otherwise fall back to most recent entry in `quiz_history` for this topic.
     try{
-      const { data: bestRows, error: bestErr } = await supabase.from('user_best_score').select('best_percentage, updated_at').eq('user_id', user.id).eq('quiz_key', topic);
+  const { data: bestRows, error: bestErr } = await supa.from('user_best_score').select('best_percentage, updated_at').eq('user_id', user.id).eq('quiz_key', topic);
       if(bestErr) console.debug('updateTopicUI: user_best_score fetch error', bestErr);
       if(bestRows && bestRows.length){
         const b = bestRows[0];
@@ -504,7 +510,7 @@ window.updateTopicUI = async function(topic){
       }
 
       // fallback: latest history entry for this topic
-      const { data: histRows, error: histErr } = await supabase.from('quiz_history').select('percentage, created_at').eq('user_id', user.id).eq('quiz_key', topic).order('created_at', { ascending: false }).limit(1);
+  const { data: histRows, error: histErr } = await supa.from('quiz_history').select('percentage, created_at').eq('user_id', user.id).eq('quiz_key', topic).order('created_at', { ascending: false }).limit(1);
       if(histErr) console.debug('updateTopicUI: quiz_history fetch error', histErr);
       if(histRows && histRows.length){
         const h = histRows[0];
