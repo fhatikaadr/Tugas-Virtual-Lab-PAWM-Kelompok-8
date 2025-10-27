@@ -848,7 +848,13 @@ setTimeout(()=>{
   async function loadProgressFromSupabase() {
     if (loaded) return; // Mencegah double-load
 
-    const { data: { user } } = await supabase.auth.getUser();
+    const sup = (typeof window !== 'undefined' && window.supabase) ? window.supabase : (typeof supabase !== 'undefined' ? supabase : null);
+    if(!sup || !sup.auth){
+      console.warn("loadProgressFromSupabase: supabase client not available");
+      return;
+    }
+
+    const { data: { user } } = await sup.auth.getUser();
     if (!user) {
       console.log("User tidak login, tidak bisa load progress.");
       return; // User tidak login
@@ -875,10 +881,12 @@ setTimeout(()=>{
         // ensure all MODULES keys exist as booleans (default false)
         state = {};
         MODULES.forEach(m => { state[m] = !!mp[m]; });
+        console.log('loadProgressFromSupabase: loaded progress from DB:', state);
       } else {
         // No progress data - initialize to all false
         state = {};
         MODULES.forEach(m => { state[m] = false; });
+        console.log('loadProgressFromSupabase: no progress data, initialized to all false');
       }
       
       // DON'T merge with local storage anymore - it causes "Sudah Dibaca" to appear incorrectly
@@ -1109,19 +1117,23 @@ setTimeout(()=>{
       // Build normalized payload and persist immediately to localStorage (per-user key when available)
       const payload = {};
       MODULES.forEach(m => { payload[m] = !!state[m]; });
+      console.log('mark-read clicked:', mod, 'new state:', state);
       try{ const lpKey = localProgressKey(user_id); localStorage.setItem(lpKey, JSON.stringify(payload)); }catch(e){/* ignore */}
 
       // Try to save to Supabase; if unavailable or save fails, enqueue locally
       let saved = false;
       if (typeof supabase === 'undefined' || !user_id) {
+        console.warn('Cannot save to Supabase (not logged in or SDK not ready), enqueueing');
         enqueueProgress(payload);
       } else {
         try{
           const ok = await saveProgressToSupabase();
           if (!ok) {
+            console.warn('saveProgressToSupabase returned false, enqueueing');
             enqueueProgress(payload);
           } else {
             saved = true;
+            console.log('Progress saved to DB successfully!');
             try{ const lpKey = localProgressKey(user_id); localStorage.removeItem(lpKey); }catch(_){/* ignore */}
           }
         }catch(e){
