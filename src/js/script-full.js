@@ -921,8 +921,7 @@ setTimeout(()=>{
 
 // --- FUNGSI BARU: Menyimpan progress ke Supabase ---
   async function saveProgressToSupabase() {
-    // require a logged-in user; allow saving even if 'loaded' flag hasn't been set yet
-    if (!user_id) return false; 
+    if (!user_id || !loaded) return false; 
 
     const sup = (typeof window !== 'undefined' && window.supabase) ? window.supabase : (typeof supabase !== 'undefined' ? supabase : null);
     if(!sup) {
@@ -1115,17 +1114,11 @@ setTimeout(()=>{
       btn.classList.add('opacity-60');
       btn.textContent = 'Menyimpan...';
 
-      // Build normalized payload. For anonymous users persist locally; for logged-in users
-      // prefer server as source-of-truth and do NOT write per-user state to localStorage.
+      // Build normalized payload and persist immediately to localStorage (per-user key when available)
       const payload = {};
       MODULES.forEach(m => { payload[m] = !!state[m]; });
       console.log('mark-read clicked:', mod, 'new state:', state);
-      try{
-        if(!user_id){ // anonymous user -> persist locally under :anon
-          const lpKey = localProgressKey(null);
-          localStorage.setItem(lpKey, JSON.stringify(payload));
-        }
-      }catch(e){/* ignore */}
+      try{ const lpKey = localProgressKey(user_id); localStorage.setItem(lpKey, JSON.stringify(payload)); }catch(e){/* ignore */}
 
       // Try to save to Supabase; if unavailable or save fails, enqueue locally
       let saved = false;
@@ -1141,7 +1134,7 @@ setTimeout(()=>{
           } else {
             saved = true;
             console.log('Progress saved to DB successfully!');
-            // do not remove per-user localStorage because we don't store per-user keys anymore
+            try{ const lpKey = localProgressKey(user_id); localStorage.removeItem(lpKey); }catch(_){/* ignore */}
           }
         }catch(e){
           console.warn('saveProgress failed, enqueueing', e);
@@ -1182,7 +1175,6 @@ setTimeout(()=>{
 
 // --- FUNGSI PROFIL BARU ---
   async function showProfileView(){
-    console.log('showProfileView called'); // DEBUG
     // Show loading state
     const loggedInEl = el('logged-in');
     const notLoggedEl = el('not-logged');
@@ -1209,8 +1201,6 @@ setTimeout(()=>{
       }
     }catch(e){ console.warn('showProfileView: cannot access supabase auth', e); user = null; }
 
-    console.log('showProfileView user:', user); // DEBUG
-
     if(user){
       el('not-logged').classList.add('hidden');
       el('logged-in').classList.remove('hidden');
@@ -1219,8 +1209,6 @@ setTimeout(()=>{
       const fetchedProfile = await fetchProfileRow(user.id, 'full_name');
       const profileData = fetchedProfile && fetchedProfile.data ? fetchedProfile.data : null;
       if(fetchedProfile && fetchedProfile.error) console.debug('showProfileView: profile fetch error', fetchedProfile.error);
-      
-      console.log('showProfileView profileData:', profileData); // DEBUG
 
   // Prefer full_name from the app's profile table; fall back to OAuth metadata (Google name), then email
   let displayName = null;
@@ -1234,8 +1222,6 @@ setTimeout(()=>{
   }
   if (!displayName) displayName = user && user.email ? user.email : 'Pengguna';
 
-      console.log('showProfileView displayName:', displayName); // DEBUG
-      
       el('profile-name').textContent = displayName;
       el('profile-email').textContent = user.email || '';
       // hide the hint text when logged in
