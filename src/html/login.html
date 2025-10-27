@@ -4,197 +4,244 @@
   <script src="/src/js/supabase-client.js"></script>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>PhySphere — Login</title>
+  <title>PhySphere — Login & Register</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/src/css/style.css">
-  <style>
-    body {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
-      position: relative;
-      overflow: hidden;
-    }
-    
-    /* Animated background particles */
-    .particle {
-      position: absolute;
-      border-radius: 50%;
-      background: rgba(255, 255, 255, 0.3);
-      animation: float 20s infinite ease-in-out;
-    }
-    
-    @keyframes float {
-      0%, 100% { transform: translate(0, 0) rotate(0deg); opacity: 0; }
-      10% { opacity: 1; }
-      90% { opacity: 1; }
-      100% { transform: translate(var(--tx), var(--ty)) rotate(360deg); opacity: 0; }
-    }
-    
-    /* Wave animation */
-    .wave {
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      width: 200%;
-      height: 200px;
-      background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 120'%3E%3Cpath d='M321.39,56.44c58-10.79,114.16-30.13,172-41.86,82.39-16.72,168.19-17.73,250.45-.39C823.78,31,906.67,72,985.66,92.83c70.05,18.48,146.53,26.09,214.34,3V0H0V27.35A600.21,600.21,0,0,0,321.39,56.44Z' fill='rgba(255,255,255,0.1)'/%3E%3C/svg%3E");
-      background-size: 50% 100%;
-      animation: wave 15s linear infinite;
-    }
-    
-    @keyframes wave {
-      0% { transform: translateX(0); }
-      100% { transform: translateX(-50%); }
-    }
-    
-    /* Glassmorphism card */
-    .glass-card {
-      background: rgba(255, 255, 255, 0.15);
-      backdrop-filter: blur(10px);
-      border-radius: 20px;
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
-      padding: 2.5rem;
-      animation: slideUp 0.6s ease-out;
-    }
-    
-    @keyframes slideUp {
-      from { opacity: 0; transform: translateY(30px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-    
-    /* Input styles */
-    .physics-input {
-      background: rgba(255, 255, 255, 0.9);
-      border: 2px solid rgba(255, 255, 255, 0.3);
-      border-radius: 12px;
-      padding: 0.75rem 1rem;
-      width: 100%;
-      transition: all 0.3s ease;
-      font-size: 1rem;
-    }
-    
-    .physics-input:focus {
-      outline: none;
-      border-color: #667eea;
-      background: rgba(255, 255, 255, 1);
-      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-    }
-    
-    /* Button styles */
-    .physics-btn {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      border: none;
-      border-radius: 12px;
-      padding: 0.875rem 2rem;
-      font-weight: 600;
-      font-size: 1rem;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      position: relative;
-      overflow: hidden;
-    }
-    
-    .physics-btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 10px 25px rgba(102, 126, 234, 0.5);
-    }
-    
-    .physics-btn:active {
-      transform: translateY(0);
-    }
-    
-    .physics-btn-secondary {
-      background: rgba(255, 255, 255, 0.9);
-      color: #667eea;
-      border: 2px solid rgba(255, 255, 255, 0.3);
-    }
-    
-    .physics-btn-secondary:hover {
-      background: rgba(255, 255, 255, 1);
-      border-color: #667eea;
-    }
-    
-    /* Logo animation */
-    .logo-orbit {
-      animation: orbit 4s linear infinite;
-    }
-    
-    @keyframes orbit {
-      from { transform: rotate(0deg); }
-      to { transform: rotate(360deg); }
-    }
-  </style>
 </head>
-<body class="min-h-screen flex items-center justify-center">
-  <!-- Animated particles -->
-  <div class="particle" style="width: 60px; height: 60px; left: 10%; top: 20%; --tx: 100px; --ty: -150px; animation-delay: 0s;"></div>
-  <div class="particle" style="width: 40px; height: 40px; left: 80%; top: 30%; --tx: -120px; --ty: 200px; animation-delay: 2s;"></div>
-  <div class="particle" style="width: 80px; height: 80px; left: 50%; top: 10%; --tx: 80px; --ty: 180px; animation-delay: 4s;"></div>
-  <div class="particle" style="width: 30px; height: 30px; left: 20%; top: 70%; --tx: -90px; --ty: -100px; animation-delay: 1s;"></div>
-  <div class="particle" style="width: 50px; height: 50px; left: 70%; top: 80%; --tx: 110px; --ty: -130px; animation-delay: 3s;"></div>
-  
-  <!-- Wave -->
-  <div class="wave"></div>
-  
-  <div class="max-w-md w-full p-6 relative z-10">
-    <div class="glass-card">
-      <!-- Logo/Icon -->
-      <div class="flex justify-center mb-6">
-        <div class="relative">
-          <div class="w-20 h-20 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center shadow-lg">
-            <svg class="w-10 h-10 text-white logo-orbit" fill="currentColor" viewBox="0 0 20 20">
-              <circle cx="10" cy="10" r="2" fill="white"/>
-              <circle cx="10" cy="10" r="7" fill="none" stroke="white" stroke-width="1.5"/>
-              <circle cx="10" cy="3" r="1.5" fill="white"/>
-              <circle cx="10" cy="17" r="1.5" fill="white"/>
-              <circle cx="3" cy="10" r="1.5" fill="white"/>
-              <circle cx="17" cy="10" r="1.5" fill="white"/>
-            </svg>
+<body class="auth-body min-h-screen">
+  <!-- Container dengan Layout Split -->
+  <div class="min-h-screen grid lg:grid-cols-2 gap-0">
+    
+    <!-- LEFT SIDE - Form Card -->
+    <div class="flex items-center justify-center p-6 lg:p-12 relative z-10">
+      <div class="w-full max-w-md">
+        <div class="bg-white/90 backdrop-blur-xl rounded-3xl shadow-2xl p-8 lg:p-10">
+          
+          <!-- Physics Logo with Orbits -->
+          <div class="physics-logo mb-6">
+            <div class="physics-orbit" style="width:80px;height:80px;">
+              <div class="physics-electron"></div>
+            </div>
+            <div class="physics-orbit" style="width:80px;height:80px;transform:rotate(60deg);">
+              <div class="physics-electron"></div>
+            </div>
+            <div class="physics-orbit" style="width:80px;height:80px;transform:rotate(120deg);">
+              <div class="physics-electron"></div>
+            </div>
+            <div class="physics-nucleus"></div>
           </div>
+          
+          <h1 class="text-3xl lg:text-4xl font-extrabold text-center mb-2 bg-gradient-to-r from-purple-600 via-purple-500 to-amber-500 bg-clip-text text-transparent">PhySphere</h1>
+          <p class="text-center text-slate-600 mb-8">Masuk ke portal pembelajaran fisika interaktif</p>
+          
+          <!-- Tab Switcher -->
+          <div class="auth-tabs mb-6">
+            <button class="auth-tab active" data-tab="login">Masuk</button>
+            <button class="auth-tab" data-tab="register">Daftar</button>
+          </div>
+          
+          <!-- Login Form -->
+          <div id="login-container" class="auth-form-container active">
+            <form id="login-form" class="space-y-4">
+              <div>
+                <label class="auth-label">📧 Email Address</label>
+                <input 
+                  id="login-email" 
+                  type="email" 
+                  class="auth-input" 
+                  placeholder="nama@email.com"
+                  required
+                >
+              </div>
+              
+              <div>
+                <label class="auth-label">🔐 Password</label>
+                <input 
+                  id="login-password" 
+                  type="password" 
+                  class="auth-input" 
+                  placeholder="••••••••"
+                  required
+                >
+              </div>
+              
+              <div id="login-msg" class="auth-msg text-red-600"></div>
+              
+              <button type="submit" class="auth-btn auth-btn-primary w-full">
+                Masuk
+              </button>
+            </form>
+            
+            <div class="mt-5 text-center">
+              <div class="relative">
+                <div class="absolute inset-0 flex items-center">
+                  <div class="w-full border-t border-slate-200"></div>
+                </div>
+                <div class="relative flex justify-center text-xs">
+                  <span class="px-3 bg-white text-slate-500">atau masuk dengan</span>
+                </div>
+              </div>
+            </div>
+            
+            <button type="button" id="google-login" class="mt-5 w-full flex items-center justify-center gap-3 px-4 py-3 border-2 border-slate-200 rounded-xl font-semibold text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-all">
+              <svg class="w-5 h-5" viewBox="0 0 24 24">
+                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+              </svg>
+              Masuk dengan Google
+            </button>
+          </div>
+          
+          <!-- Register Form -->
+          <div id="register-container" class="auth-form-container">
+            <form id="register-form" class="space-y-4">
+              <div>
+                <label class="auth-label">👤 Nama Lengkap</label>
+                <input 
+                  id="reg-name" 
+                  type="text" 
+                  class="auth-input" 
+                  placeholder="Nikola Tesla"
+                  required
+                >
+              </div>
+              
+              <div>
+                <label class="auth-label">📧 Email Address</label>
+                <input 
+                  id="reg-email" 
+                  type="email" 
+                  class="auth-input" 
+                  placeholder="nama@email.com"
+                  required
+                >
+              </div>
+              
+              <div>
+                <label class="auth-label">🔐 Password</label>
+                <input 
+                  id="reg-password" 
+                  type="password" 
+                  class="auth-input" 
+                  placeholder="••••••••"
+                  required
+                >
+              </div>
+              
+              <div id="reg-msg" class="auth-msg text-red-600"></div>
+              
+              <button type="submit" class="auth-btn auth-btn-primary w-full">
+                Daftar Sekarang
+              </button>
+            </form>
+            
+            <div class="mt-5 text-center">
+              <div class="relative">
+                <div class="absolute inset-0 flex items-center">
+                  <div class="w-full border-t border-slate-200"></div>
+                </div>
+                <div class="relative flex justify-center text-xs">
+                  <span class="px-3 bg-white text-slate-500">atau daftar dengan</span>
+                </div>
+              </div>
+            </div>
+            
+            <button type="button" id="google-register" class="mt-5 w-full flex items-center justify-center gap-3 px-4 py-3 border-2 border-slate-200 rounded-xl font-semibold text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-all">
+              <svg class="w-5 h-5" viewBox="0 0 24 24">
+                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+              </svg>
+              Daftar dengan Google
+            </button>
+          </div>
+          
         </div>
-      </div>
-      
-      <h2 class="text-3xl font-bold text-white text-center mb-2">PhySphere</h2>
-      <p class="text-white/80 text-center mb-8 text-sm">Masuk ke portal pembelajaran fisika</p>
-
-      <div class="space-y-4">
-        <div>
-          <label class="block text-sm font-medium text-white/90 mb-2">📧 Email</label>
-          <input id="login-email" type="email" class="physics-input" placeholder="nama@email.com">
-        </div>
-
-        <div>
-          <label class="block text-sm font-medium text-white/90 mb-2">🔐 Password</label>
-          <input id="login-password" type="password" class="physics-input" placeholder="••••••••">
-        </div>
-
-        <div id="login-msg" class="text-sm text-yellow-200 font-medium min-h-[1.25rem]"></div>
-
-        <div class="flex gap-3 pt-2">
-          <button id="login-submit" class="physics-btn flex-1">
-            Masuk
-          </button>
-          <a href="/" class="physics-btn physics-btn-secondary flex-shrink-0">
-            Kembali
-          </a>
-        </div>
-      </div>
-
-      <div class="mt-6 pt-6 border-t border-white/20">
-        <p class="text-center text-white/80 text-sm">
-          Belum punya akun? 
-          <a href="/register" class="text-yellow-200 font-semibold hover:text-yellow-100 transition-colors">Daftar Sekarang</a>
-        </p>
       </div>
     </div>
+    
+    <!-- RIGHT SIDE - Physics Visualization -->
+    <div class="hidden lg:flex items-center justify-center p-12 relative">
+      <!-- Animated particles in background -->
+      <div class="physics-particle" style="width:150px;height:150px;top:10%;left:10%;--tx:100px;--ty:-80px;animation-delay:0s;"></div>
+      <div class="physics-particle" style="width:120px;height:120px;top:30%;right:15%;--tx:-90px;--ty:120px;animation-delay:4s;"></div>
+      <div class="physics-particle" style="width:100px;height:100px;bottom:20%;left:20%;--tx:110px;--ty:-100px;animation-delay:8s;"></div>
+      <div class="physics-particle" style="width:130px;height:130px;bottom:35%;right:10%;--tx:-80px;--ty:90px;animation-delay:12s;"></div>
+      
+      <!-- Main content -->
+      <div class="text-center relative z-10">
+        <!-- Large Atom Visualization -->
+        <div class="relative w-80 h-80 mx-auto mb-8">
+          <div class="absolute inset-0 flex items-center justify-center">
+            <!-- Orbits -->
+            <div class="absolute w-64 h-64 border-4 border-white/30 rounded-full animate-spin" style="animation-duration:20s;"></div>
+            <div class="absolute w-48 h-48 border-4 border-white/30 rounded-full animate-spin" style="animation-duration:15s;transform:rotate(60deg);"></div>
+            <div class="absolute w-32 h-32 border-4 border-white/30 rounded-full animate-spin" style="animation-duration:10s;transform:rotate(120deg);"></div>
+            
+            <!-- Electrons -->
+            <div class="absolute w-64 h-64 animate-spin" style="animation-duration:20s;">
+              <div class="absolute top-0 left-1/2 w-5 h-5 bg-white rounded-full shadow-lg -ml-2.5"></div>
+            </div>
+            <div class="absolute w-48 h-48 animate-spin" style="animation-duration:15s;transform:rotate(60deg);">
+              <div class="absolute top-0 left-1/2 w-5 h-5 bg-purple-300 rounded-full shadow-lg -ml-2.5"></div>
+            </div>
+            <div class="absolute w-32 h-32 animate-spin" style="animation-duration:10s;transform:rotate(120deg);">
+              <div class="absolute top-0 left-1/2 w-5 h-5 bg-amber-300 rounded-full shadow-lg -ml-2.5"></div>
+            </div>
+            
+            <!-- Nucleus -->
+            <div class="w-16 h-16 bg-gradient-to-br from-purple-400 to-amber-400 rounded-full shadow-2xl"></div>
+          </div>
+        </div>
+        
+        <h2 class="text-5xl font-extrabold text-white mb-4 drop-shadow-lg">PhySphere</h2>
+        <p class="text-xl text-white/90 mb-6 max-w-md mx-auto drop-shadow">
+          Eksplorasi dunia fisika dengan simulasi interaktif Gerak Harmonik Sederhana
+        </p>
+        
+        <div class="inline-flex items-center gap-3 px-6 py-3 bg-white/20 backdrop-blur-md rounded-full text-white font-medium shadow-xl">
+          <span class="text-2xl">⚛️</span>
+          <span>Belajar Fisika Jadi Lebih Seru!</span>
+        </div>
+      </div>
+    </div>
+    
   </div>
+
 
   <script>
     (function(){
       function el(id){return document.getElementById(id)}
       
-      // Cek apakah sudah login dengan Supabase (tunggu inisialisasi client dulu)
+      // Tab Switcher
+      const tabs = document.querySelectorAll('.auth-tab');
+      const loginContainer = el('login-container');
+      const registerContainer = el('register-container');
+      
+      tabs.forEach(tab => {
+        tab.addEventListener('click', function(){
+          const tabName = this.getAttribute('data-tab');
+          
+          // Update active tab
+          tabs.forEach(t => t.classList.remove('active'));
+          this.classList.add('active');
+          
+          // Show/hide containers
+          if(tabName === 'login'){
+            loginContainer.classList.add('active');
+            registerContainer.classList.remove('active');
+          } else {
+            registerContainer.classList.add('active');
+            loginContainer.classList.remove('active');
+          }
+        });
+      });
+      
+      // Cek apakah sudah login dengan Supabase
       (async function() {
         try {
           await (window.__supabaseReady || Promise.resolve());
@@ -204,46 +251,135 @@
         if (!window.supabase) return;
         const { data: { session } } = await supabase.auth.getSession();
         if (session) {
-          // User sudah login, lempar ke halaman utama
           window.location.href = '/PhySphere';
         }
       })();
 
-      // Ganti logika 'click' dengan Supabase
-      el('login-submit').addEventListener('click', async function(){
+      // LOGIN Form
+      const loginForm = el('login-form');
+      loginForm.addEventListener('submit', async function(e){
+        e.preventDefault();
+        
         const email = (el('login-email').value||'').trim().toLowerCase();
         const pass = (el('login-password').value||'');
         const msg = el('login-msg'); msg.textContent = '';
         
         if(!email || !pass){ msg.textContent = 'Email dan password wajib diisi.'; return; }
 
-          // ensure Supabase SDK is initialized before calling auth
-          try{
-            await (window.__supabaseReady || Promise.resolve());
-          }catch(e){ console.error('Supabase init error (login):', e); }
-          if (!window.supabase) {
-            msg.textContent = 'SDK Supabase gagal dimuat. Cek koneksi atau console (see window.__supabaseInitError).';
-            console.warn('Supabase init error detail:', window.__supabaseInitError);
-            return;
-          }
+        try{
+          await (window.__supabaseReady || Promise.resolve());
+        }catch(e){ console.error('Supabase init error (login):', e); }
+        if (!window.supabase) {
+          msg.textContent = 'SDK Supabase gagal dimuat.';
+          return;
+        }
 
-          // LOGIKA SUPABASE BARU
-          msg.textContent = 'Masuk...';
-          const { data, error } = await supabase.auth.signInWithPassword({
-            email: email,
-            password: pass,
-          });
+        msg.textContent = 'Masuk...';
+        msg.classList.remove('text-red-600');
+        msg.classList.add('text-purple-600');
+        
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: email,
+          password: pass,
+        });
 
-          if (error) {
-            msg.textContent = 'Email atau password salah.';
-            console.error('Login error', error);
-            return;
-          }
+        if (error) {
+          msg.classList.remove('text-purple-600');
+          msg.classList.add('text-red-600');
+          msg.textContent = 'Email atau password salah.';
+          return;
+        }
 
-          // Login berhasil, Supabase menyimpan session di localStorage-nya sendiri
-          try{ sessionStorage.setItem('pysphere_active_page','beranda'); }catch(e){}
-          window.location.href = '/PhySphere';
+        try{ sessionStorage.setItem('pysphere_active_page','beranda'); }catch(e){}
+        window.location.href = '/PhySphere';
       });
+      
+      // REGISTER Form
+      const registerForm = el('register-form');
+      registerForm.addEventListener('submit', async function(e){
+        e.preventDefault();
+        
+        const name = (el('reg-name').value||'').trim();
+        const email = (el('reg-email').value||'').trim().toLowerCase();
+        const pass = el('reg-password').value||'';
+        const msg = el('reg-msg'); msg.textContent = '';
+        
+        if(!name || !email || !pass){ msg.textContent = 'Semua field wajib diisi.'; return; }
+        
+        try{ await (window.__supabaseReady || Promise.resolve()); }catch(e){}
+        if (!window.supabase) { msg.textContent = 'SDK Supabase gagal dimuat.'; return; }
+
+        msg.textContent = 'Mendaftarkan...';
+        msg.classList.remove('text-red-600');
+        msg.classList.add('text-purple-600');
+        
+        const { data, error } = await supabase.auth.signUp({
+          email: email,
+          password: pass,
+          options: {
+            data: { full_name: name }
+          }
+        });
+
+        if (error) {
+          msg.classList.remove('text-purple-600');
+          msg.classList.add('text-red-600');
+          msg.textContent = 'Error: ' + error.message;
+          return;
+        }
+
+        const newUser = data?.user || (data?.session && data.session.user) || null;
+        if (!newUser) {
+          msg.classList.remove('text-red-600');
+          msg.classList.add('text-purple-600');
+          msg.textContent = 'Registrasi berhasil. Cek email untuk konfirmasi.';
+          return;
+        }
+
+        try {
+          await supabase.from('profile').upsert({
+            id: newUser.id,
+            full_name: name,
+            email: email,
+            materi_progress: { "ghs": false, "pegas": false, "bandul": false, "getaran": false },
+            updated_at: new Date().toISOString()
+          }, { onConflict: 'id' });
+        } catch(e) {
+          console.error('Profile error', e);
+        }
+
+        msg.textContent = 'Berhasil! Mengarahkan...';
+        try{ sessionStorage.setItem('pysphere_active_page','beranda'); }catch(e){}
+        window.location.href = '/PhySphere';
+      });
+      
+      // Google OAuth Login
+      const googleLoginBtn = el('google-login');
+      if(googleLoginBtn){
+        googleLoginBtn.addEventListener('click', async function(){
+          try{ await (window.__supabaseReady || Promise.resolve()); }catch(e){}
+          if (!window.supabase) return;
+          
+          await supabase.auth.signInWithOAuth({
+            provider: 'google',
+            options: { redirectTo: window.location.origin + '/PhySphere' }
+          });
+        });
+      }
+      
+      // Google OAuth Register
+      const googleRegisterBtn = el('google-register');
+      if(googleRegisterBtn){
+        googleRegisterBtn.addEventListener('click', async function(){
+          try{ await (window.__supabaseReady || Promise.resolve()); }catch(e){}
+          if (!window.supabase) return;
+          
+          await supabase.auth.signInWithOAuth({
+            provider: 'google',
+            options: { redirectTo: window.location.origin + '/PhySphere' }
+          });
+        });
+      }
     })();
   </script>
 </body>
