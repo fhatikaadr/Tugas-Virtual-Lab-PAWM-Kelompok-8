@@ -1105,6 +1105,17 @@ setTimeout(()=>{
       try{ e.stopImmediatePropagation(); }catch(_){ /* ignore */ }
       const mod = btn.dataset.module;
       if(!mod) return;
+      // Ensure Supabase SDK is ready before checking auth / saving
+      try{ await (window.__supabaseReady || Promise.resolve()); }catch(e){ console.warn('supabase init wait failed in mark-read handler', e); }
+      const sup = (typeof window !== 'undefined' && window.supabase) ? window.supabase : (typeof supabase !== 'undefined' ? supabase : null);
+      // Check if user is logged in. Prefer getUser(); fallback to getSession()
+      let clickUser = null;
+      try{
+        if(sup && sup.auth){
+          try{ const g = await sup.auth.getUser(); clickUser = g && g.data && g.data.user ? g.data.user : null; }catch(e){ console.debug('getUser failed in handler', e); }
+          if(!clickUser){ try{ const s = await sup.auth.getSession(); clickUser = s && s.data && s.data.session ? s.data.session.user : null; }catch(e){ console.debug('getSession failed in handler', e); } }
+        }
+      }catch(e){ console.warn('auth check failed in mark-read handler', e); }
       // Optimistic UI: toggle local state and show a saving indicator on the clicked button
       const prev = !!state[mod];
       state[mod] = !prev;
@@ -1127,13 +1138,21 @@ setTimeout(()=>{
         }
       }catch(e){/* ignore */}
 
-      // Try to save to Supabase; if unavailable or save fails, enqueue locally
+      // Try to save to Supabase; if unavailable or save fails, enqueue locally or prompt login
       let saved = false;
-      if (typeof supabase === 'undefined' || !user_id) {
-        console.warn('Cannot save to Supabase (not logged in or SDK not ready), enqueueing');
-        enqueueProgress(payload);
+      if (!clickUser) {
+        // Not logged in: ask user to login so progress is saved per-account.
+        try{
+          const goLogin = confirm('Kamu belum login. Untuk menyimpan progress ke akunmu, silakan login sekarang. Tekan OK untuk pergi ke halaman login, atau Cancel untuk menyimpan lokal sebagai anonim.');
+          if(goLogin){ window.location.href = '/login.html'; return; }
+          // user chose to stay anonymous: enqueue local anonymous payload
+          console.warn('User chose to remain anonymous; enqueueing progress');
+          enqueueProgress(payload);
+        }catch(e){ enqueueProgress(payload); }
       } else {
         try{
+          // ensure user_id is set to the clicked user's id
+          user_id = clickUser.id;
           const ok = await saveProgressToSupabase();
           if (!ok) {
             console.warn('saveProgressToSupabase returned false, enqueueing');
