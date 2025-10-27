@@ -1068,6 +1068,23 @@ setTimeout(()=>{
     showModule(MODULES[0]);
   })();
 
+  // --- Load anonymous local progress (so unsigned users keep progress across refresh) ---
+  // We intentionally only load the ':anon' key here into the in-memory `state` so
+  // a) users who are not logged in still see their progress after refresh, and
+  // b) we do not overwrite per-user server-backed progress (which is merged after login).
+  try{
+    const anonKey = localProgressKey(null);
+    const anonRaw = localStorage.getItem(anonKey);
+    if(anonRaw){
+      const anonObj = JSON.parse(anonRaw);
+      if(anonObj && typeof anonObj === 'object'){
+        MODULES.forEach(m => { state[m] = !!anonObj[m]; });
+        // reflect immediately in UI
+        try{ updateProgressUI(); refreshButtons(); }catch(e){}
+      }
+    }
+  }catch(e){ /* non-fatal: ignore malformed local data */ }
+
   // NOTE: Do not apply global/local progress before knowing which user is active.
   // Applying a shared local copy caused progress from one account to appear when
   // another account logged in on the same browser. We now persist local progress
