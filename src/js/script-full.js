@@ -1508,7 +1508,7 @@ setTimeout(()=>{
     try{ 
       if(typeof checkLoginStatus === 'function') {
         const isLoggedIn = await checkLoginStatus();
-        console.log('🔍 Init: checkLoginStatus result:', isLoggedIn, 'user_id:', user_id);
+        console.log('🔍 Init: checkLoginStatus result:', isLoggedIn);
       }
     }catch(e){ console.warn('checkLoginStatus failed', e); }
 
