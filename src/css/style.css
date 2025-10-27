@@ -1,6 +1,6 @@
 :root{
   --purple-50:#f3e8ff; --purple-100:#e9d5ff; --purple-500:#a855f7; --purple-600:#9333ea; --purple-700:#7c3aed; --purple-800:#6d28d9;
-  --yellow-400:#fde047; --yellow-300:#fde68a; --yellow-500:#eab308;
+  --yellow-400:#ffffff; --yellow-300:#fde68a; --yellow-500:#eab308;
   --glass: rgba(255,255,255,0.6);
 }
 body{font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial; background:linear-gradient(180deg,var(--purple-50),#fefce8);}
