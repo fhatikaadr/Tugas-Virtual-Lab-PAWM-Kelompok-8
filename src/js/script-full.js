@@ -457,7 +457,7 @@ window.renderCompletedResults = async function(){
         // compute best from history
         history.forEach(h => {
           const key = String(h.quiz_key || 'unknown').toLowerCase();
-          const pct = (h.percentage != null) ? Number(h.percentage) : null;
+          const pct = (h.percentage != null) ? Number(h.percentage) : (h.score != null ? Number(h.score) : 0);
           if(pct != null){
             if(!scoresMap[key] || (scoresMap[key].pct == null) || pct > scoresMap[key].pct){
               scoresMap[key] = { pct, date: h.created_at };
@@ -835,18 +835,20 @@ setTimeout(()=>{
   setModeUI('pegas');
 })();
 
-// --- GANTI BLOK FUNGSI MODUL LAMA DENGAN INI ---
+// ==================== MATERI PROGRESS SYSTEM (UPDATED) ====================
 (function(){
   const MODULES = ['getaran','ghs','bandul','pegas'];
+  // Default semua materi belum dibaca
   const DEFAULT_MATERI_PROGRESS = { ghs: false, pegas: false, bandul: false, getaran: false };
-  // Initialize state with all false - user hasn't read anything by default
+  
+  // State akan diisi dari database
   let state = { ghs: false, pegas: false, bandul: false, getaran: false };
-  let loaded = false; // Flag agar tidak double-load
-  let user_id = null; // ID user yang sedang login
+  let loaded = false;
+  let user_id = null;
 
-// --- FUNGSI BARU: Mengambil progress dari Supabase ---
+  // --- FUNGSI: Mengambil progress dari Supabase ---
   async function loadProgressFromSupabase() {
-    if (loaded) return; // Mencegah double-load
+    if (loaded) return;
 
     const sup = (typeof window !== 'undefined' && window.supabase) ? window.supabase : (typeof supabase !== 'undefined' ? supabase : null);
     if(!sup || !sup.auth){
@@ -854,64 +856,79 @@ setTimeout(()=>{
       return;
     }
 
-    const { data: { user } } = await sup.auth.getUser();
-    if (!user) {
-      console.log("User tidak login, tidak bisa load progress.");
-      return; // User tidak login
+    // Tunggu sampai auth siap dan cek user
+    try {
+      const { data: { user } } = await sup.auth.getUser();
+      if (!user) {
+        console.log("User tidak login, tidak bisa load progress.");
+        // User tidak login, gunakan state default
+        state = { ...DEFAULT_MATERI_PROGRESS };
+        loaded = true;
+        updateProgressUI();
+        refreshButtons();
+        return;
+      }
+      user_id = user.id;
+    } catch(e) {
+      console.warn("Error getting user in loadProgress", e);
+      return;
     }
-    user_id = user.id;
 
-    // Ambil data dari tabel 'profile' (coba 'profile' lalu 'profiles')
+    // Ambil data dari tabel 'profile'
     const fetched = await fetchProfileRow(user_id, 'materi_progress');
     const data = fetched && fetched.data ? fetched.data : null;
-    const error = fetched && fetched.error ? fetched.error : null;
 
-    if (data) {
-      // Normalize materi_progress into an object with known keys.
-      let mp = data.materi_progress;
-      if (!mp || typeof mp === 'string') {
-        try {
-          // attempt JSON parse when it's a string
-          mp = (typeof mp === 'string' && mp.trim()) ? JSON.parse(mp) : {};
-        } catch (e) {
-          mp = {};
+    if (data && data.materi_progress) {
+      try {
+        let mp = data.materi_progress;
+        // Parse jika berupa string
+        if (typeof mp === 'string') {
+          mp = JSON.parse(mp);
         }
-      }
-      if (typeof mp === 'object' && mp !== null) {
-        // ensure all MODULES keys exist as booleans (default false)
-        state = {};
-        MODULES.forEach(m => { state[m] = !!mp[m]; });
-        console.log('loadProgressFromSupabase: loaded progress from DB:', state);
-      } else {
-        // No progress data - initialize to all false
-        state = {};
+        
+        if (typeof mp === 'object' && mp !== null) {
+          // Update state dengan data dari database
+          MODULES.forEach(m => {
+            state[m] = mp[m] === true;
+          });
+          console.log('loadProgressFromSupabase: loaded progress from DB:', state);
+        }
+      } catch (e) {
+        console.error('Error parsing materi_progress:', e);
+        // Jika error parsing, gunakan default
         MODULES.forEach(m => { state[m] = false; });
-        console.log('loadProgressFromSupabase: no progress data, initialized to all false');
       }
+    } else {
+      // Tidak ada data di database, gunakan default
+      MODULES.forEach(m => { state[m] = false; });
+      console.log('loadProgressFromSupabase: no progress data, using defaults');
       
-      // DON'T merge with local storage anymore - it causes "Sudah Dibaca" to appear incorrectly
-      // Only use database as source of truth for logged-in users
-      
-      // If the stored value was empty (no keys), persist a default object
-      const hasAnyKey = Object.keys(mp || {}).length > 0;
-      if (!hasAnyKey) {
-        try{
-          const sup = (typeof window !== 'undefined' && window.supabase) ? window.supabase : (typeof supabase !== 'undefined' ? supabase : null);
-          if(!sup) throw new Error('supabase client not available');
-          
-          // try to persist default so other clients see it
-          // Upsert into the detected table (fallback to 'profile')
+      // Simpan default ke database untuk pertama kali
+      try {
+        const payload = { ...DEFAULT_MATERI_PROGRESS };
+        const sup = (typeof window !== 'undefined' && window.supabase) ? window.supabase : (typeof supabase !== 'undefined' ? supabase : null);
+        if(sup && user_id) {
           const targetTable = (fetched && fetched.table) ? fetched.table : 'profile';
-          const { error: upErr, data: upData } = await sup.from(targetTable).upsert({ id: user_id, materi_progress: DEFAULT_MATERI_PROGRESS }, { onConflict: 'id' }).select();
-          if(upErr) throw upErr;
-          console.debug('loadProgressFromSupabase: wrote default materi_progress for user', user_id, upData);
-          // also update local state to defaults
-          state = {};
-          MODULES.forEach(m => { state[m] = !!DEFAULT_MATERI_PROGRESS[m]; });
-        }catch(e){ console.warn('loadProgressFromSupabase: failed to write default materi_progress', e); }
+          const { error } = await sup.from(targetTable)
+            .update({ materi_progress: payload })
+            .eq('id', user_id);
+          if(error) {
+            // Jika update gagal, coba upsert
+            const { error: upsertError } = await sup.from(targetTable)
+              .upsert({ 
+                id: user_id, 
+                materi_progress: payload,
+                updated_at: new Date().toISOString()
+              }, { 
+                onConflict: 'id' 
+              });
+            if(upsertError) throw upsertError;
+          }
+          console.log('Saved default materi_progress to database');
+        }
+      } catch(e) {
+        console.warn('Failed to save default materi_progress:', e);
       }
-    } else if (error) {
-       console.error("Error loading progress:", error && error.message ? error.message : error);
     }
     
     loaded = true;
@@ -919,9 +936,12 @@ setTimeout(()=>{
     refreshButtons();
   }
 
-// --- FUNGSI BARU: Menyimpan progress ke Supabase ---
+  // --- FUNGSI: Menyimpan progress ke Supabase ---
   async function saveProgressToSupabase() {
-    if (!user_id || !loaded) return false; 
+    if (!user_id || !loaded) {
+      console.warn('Cannot save progress: user not logged in or not loaded');
+      return false;
+    }
 
     const sup = (typeof window !== 'undefined' && window.supabase) ? window.supabase : (typeof supabase !== 'undefined' ? supabase : null);
     if(!sup) {
@@ -930,41 +950,44 @@ setTimeout(()=>{
     }
 
     try {
-      // Ensure we persist an object with all module keys explicitly set
-      // so other clients / UI can rely on presence of keys.
-  // Normalize payload: ensure all keys present (use defaults then override with current state)
-  const payload = Object.assign({}, DEFAULT_MATERI_PROGRESS);
-  MODULES.forEach(m => { payload[m] = !!state[m]; });
+      // Build payload dengan semua module keys
+      const payload = {};
+      MODULES.forEach(m => { 
+        payload[m] = !!state[m]; 
+      });
 
-      console.debug('saveProgressToSupabase: user_id=', user_id, 'payload=', payload);
+      console.log('Saving progress to Supabase:', payload, 'for user:', user_id);
 
-      // Try update first (most common). If no rows were updated, fall back to upsert.
-      // Try updating then upserting; attempt both common table names
-      const tables = ['profile','profiles'];
-      for(const tbl of tables){
-        try{
-          const { error: updError, data: updData } = await sup
-            .from(tbl)
-            .update({ materi_progress: payload })
-            .eq('id', user_id)
-            .select();
-          if(!updError){
-            const updatedRows = Array.isArray(updData) ? updData.length : (updData ? 1 : 0);
-            if(updatedRows){ console.debug('saveProgress update ok on', tbl, updData); return true; }
-          }
-        }catch(e){ console.debug('saveProgress update attempt failed on', tbl, e); }
+      // Coba update profile table
+      const { error, data } = await sup
+        .from('profile')
+        .update({ 
+          materi_progress: payload,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', user_id);
+
+      if (error) {
+        console.error('Error saving progress (update):', error);
+        // Fallback: try upsert
+        const { error: upsertError } = await sup
+          .from('profile')
+          .upsert({ 
+            id: user_id, 
+            materi_progress: payload,
+            updated_at: new Date().toISOString()
+          }, { 
+            onConflict: 'id' 
+          });
+        
+        if (upsertError) {
+          console.error('Upsert also failed:', upsertError);
+          return false;
+        }
       }
 
-      // If update did not succeed on any table, fallback to upsert on candidates
-      for(const tbl of tables){
-        try{
-          const { error: upError, data: upData } = await sup.from(tbl).upsert({ id: user_id, materi_progress: payload }, { onConflict: 'id' }).select();
-          if(!upError){ console.debug('saveProgress upsert ok on', tbl, upData); return true; }
-        }catch(e){ console.debug('saveProgress upsert failed on', tbl, e); }
-      }
-
-      console.error('saveProgress: update/upsert failed for all candidate tables');
-      return false;
+      console.log('Progress saved successfully to Supabase');
+      return true;
 
     } catch (e) {
       console.error('saveProgressToSupabase exception', e);
@@ -972,60 +995,7 @@ setTimeout(()=>{
     }
   }
 
-  // --- LOCAL QUEUE FALLBACK ---
-  const QUEUE_KEY = 'pysphere_progress_queue_v1';
-  // Build a per-user local progress key. If userId is falsy, use ':anon' suffix.
-  function localProgressKey(uid){ return 'pysphere_materi_progress_local_v1' + (uid ? (':' + uid) : ':anon'); }
-
-  function enqueueProgress(payload){
-    try{
-      // Normalize queued payload so it always contains the expected keys
-      const normalized = Object.assign({}, DEFAULT_MATERI_PROGRESS, payload || {});
-      const q = JSON.parse(localStorage.getItem(QUEUE_KEY) || '[]');
-      q.push({ ts: Date.now(), user_id: user_id, payload: normalized });
-      localStorage.setItem(QUEUE_KEY, JSON.stringify(q));
-      console.debug('enqueueProgress saved to local queue', payload);
-    }catch(e){ console.warn('enqueueProgress failed', e); }
-  }
-
-  async function flushProgressQueue(){
-    const sup = (typeof window !== 'undefined' && window.supabase) ? window.supabase : (typeof supabase !== 'undefined' ? supabase : null);
-    if (!sup) return; // can't flush yet
-    
-    try{
-      const raw = localStorage.getItem(QUEUE_KEY);
-      if(!raw) return;
-      const q = JSON.parse(raw || '[]');
-      if(!Array.isArray(q) || q.length === 0) return;
-      console.debug('flushProgressQueue: attempting to flush', q.length, 'items');
-      for(const item of q){
-        try{
-          if(!item) continue;
-          // If item has explicit user_id and it's for another user, skip it.
-          if(item.user_id && item.user_id !== user_id) continue;
-          // targetUser: if queued item had no user_id (anonymous), associate it with current user_id
-          const targetUser = item.user_id || user_id;
-          if(!targetUser) continue; // still no user id available
-
-          // try both candidate tables
-          const tables = ['profile','profiles'];
-          let ok=false;
-          for(const tbl of tables){
-            try{
-              const up = await sup.from(tbl).upsert({ id: targetUser, materi_progress: item.payload }, { onConflict: 'id' }).select();
-              if(!up.error){ console.debug('flushProgressQueue upsert ok on', tbl, up.data); ok=true; break; }
-            }catch(e){ console.debug('flushProgressQueue upsert failed on', tbl, e); }
-          }
-          if(!ok) console.warn('flushProgressQueue upsert error for item', item);
-        }catch(e){ console.warn('flushProgressQueue item failed', e); }
-      }
-      // remove only items for this user
-      const remaining = q.filter(i => !i || !i.user_id || i.user_id !== user_id);
-      if(remaining.length) localStorage.setItem(QUEUE_KEY, JSON.stringify(remaining)); else localStorage.removeItem(QUEUE_KEY);
-    }catch(e){ console.warn('flushProgressQueue failed', e); }
-  }
-
-  // --- FUNGSI LAMA (Tidak berubah) ---
+  // --- FUNGSI: Update UI Progress Bar ---
   const updateProgressUI = () => {
     const total = MODULES.length;
     const done = Object.keys(state).filter(k => state[k]).length;
@@ -1036,7 +1006,7 @@ setTimeout(()=>{
     if(pctEl) pctEl.textContent = pct + '%';
   };
 
-  // --- FUNGSI LAMA (Tidak berubah) ---
+  // --- FUNGSI: Refresh Tombol Materi ---
   const refreshButtons = () => {
     MODULES.forEach(id=>{
       const btn = document.querySelector(`.mark-read[data-module='${id}']`);
@@ -1054,7 +1024,7 @@ setTimeout(()=>{
     });
   };
 
-  // --- FUNGSI LAMA (Tidak berubah, tapi pastikan 'showModule' ada) ---
+  // --- FUNGSI: Navigasi Modul ---
   const materiButtons = Array.from(document.querySelectorAll('.materi-link'));
   const moduleArticles = MODULES.map(id => document.getElementById(id));
 
@@ -1076,88 +1046,77 @@ setTimeout(()=>{
     });
   });
 
+  // Inisialisasi tampilan modul
   (function initModuleView(){
     moduleArticles.forEach(art=>{ if(art) art.classList.add('module-hidden'); });
     showModule(MODULES[0]);
   })();
 
-  // --- INITIALIZATION: DON'T auto-load anonymous progress ---
-  // State defaults to all false. Only load progress after we know the user's identity.
-  // Anonymous progress will be loaded inside loadProgressFromSupabase() when needed.
-  // This prevents showing "Sudah Dibaca" for new users by mistake.
-  
-  // Initialize UI with default state (all false = "Tandai Dibaca")
-  try{ updateProgressUI(); refreshButtons(); }catch(e){ console.warn('Initial UI refresh failed', e); }
-
-  // NOTE: Do not apply global/local progress before knowing which user is active.
-  // Applying a shared local copy caused progress from one account to appear when
-  // another account logged in on the same browser. We now persist local progress
-  // per-user (keyed with the user id) and only merge the correct per-user local
-  // copy inside loadProgressFromSupabase() when the currently logged-in user is known.
-
-  // --- LOGIKA KLIK TOMBOL (DIMODIFIKASI) ---
+  // --- EVENT HANDLER: Tombol Tandai Dibaca ---
   document.querySelectorAll('.mark-read').forEach(btn=>{
-    // Use a capturing handler and stop other listeners so the lightweight
-    // handlers in script.js (which toggle dataset attributes) don't clash
-    // with our authoritative state object.
-  btn.addEventListener('click', async (e)=>{
+    btn.addEventListener('click', async (e)=>{
       try{ e.stopImmediatePropagation(); }catch(_){ /* ignore */ }
       const mod = btn.dataset.module;
       if(!mod) return;
-      // Optimistic UI: toggle local state and show a saving indicator on the clicked button
-      const prev = !!state[mod];
-      state[mod] = !prev;
+
+      // Pastikan user sudah login
+      if (!user_id) {
+        alert('Silakan login terlebih dahulu untuk menandai materi.');
+        return;
+      }
+
+      // Toggle state
+      state[mod] = !state[mod];
+      
+      // Update UI immediately
       updateProgressUI();
-      // show temporary saving text on this button only
+      refreshButtons();
+
+      // Show saving indicator
       const originalText = btn.textContent;
       btn.disabled = true;
       btn.classList.add('opacity-60');
       btn.textContent = 'Menyimpan...';
 
-      // Build normalized payload and persist immediately to localStorage (per-user key when available)
-      const payload = {};
-      MODULES.forEach(m => { payload[m] = !!state[m]; });
-      console.log('mark-read clicked:', mod, 'new state:', state);
-      try{ const lpKey = localProgressKey(user_id); localStorage.setItem(lpKey, JSON.stringify(payload)); }catch(e){/* ignore */}
-
-      // Try to save to Supabase; if unavailable or save fails, enqueue locally
-      let saved = false;
-      if (typeof supabase === 'undefined' || !user_id) {
-        console.warn('Cannot save to Supabase (not logged in or SDK not ready), enqueueing');
-        enqueueProgress(payload);
-      } else {
-        try{
-          const ok = await saveProgressToSupabase();
-          if (!ok) {
-            console.warn('saveProgressToSupabase returned false, enqueueing');
-            enqueueProgress(payload);
-          } else {
-            saved = true;
-            console.log('Progress saved to DB successfully!');
-            try{ const lpKey = localProgressKey(user_id); localStorage.removeItem(lpKey); }catch(_){/* ignore */}
-          }
-        }catch(e){
-          console.warn('saveProgress failed, enqueueing', e);
-          enqueueProgress(payload);
+      // Save to Supabase
+      try {
+        const saved = await saveProgressToSupabase();
+        if (!saved) {
+          // Revert if save failed
+          state[mod] = !state[mod];
+          updateProgressUI();
+          refreshButtons();
+          alert('Gagal menyimpan status. Coba lagi.');
+        } else {
+          console.log('Status materi berhasil disimpan ke database');
         }
-      }
-
-      // restore button state and refresh UI to reflect authoritative saved state
-      try{
+      } catch (error) {
+        // Revert on error
+        state[mod] = !state[mod];
+        updateProgressUI();
+        refreshButtons();
+        console.error('Error menyimpan status:', error);
+        alert('Error menyimpan status: ' + error.message);
+      } finally {
+        // Restore button
         btn.disabled = false;
         btn.classList.remove('opacity-60');
-        // refreshButtons will set correct text & color per state
-        refreshButtons();
-      }catch(e){
-        // fallback: restore original text
-        btn.textContent = originalText;
+        refreshButtons(); // This will set correct text based on state
       }
-  }, { passive: true, capture: true });
+    }, { passive: true, capture: true });
   });
 
-  // --- MEMUAT DATA SAAT HALAMAN DIBUKA ---
-  // Panggil fungsi load baru kita -- defer until Supabase client is ready
-  // (we'll initialize Supabase-dependent calls in a single async init below)
+  // Initialize UI dengan default state
+  try{ updateProgressUI(); refreshButtons(); }catch(e){ console.warn('Initial UI refresh failed', e); }
+
+  // --- INTEGRASI DENGAN AUTH SYSTEM ---
+  // Function untuk diintegrasikan dengan auth system
+  window.materiProgressSystem = {
+    loadProgress: loadProgressFromSupabase,
+    refreshUI: () => { updateProgressUI(); refreshButtons(); },
+    setUserId: (id) => { user_id = id; }
+  };
+
 })();
 
 // --- GANTI BLOK FUNGSI LOGIN/REGISTER LAMA DENGAN INI ---
@@ -1378,7 +1337,35 @@ setTimeout(()=>{
       console.warn('supabase init failed or timed out', e);
     }
 
-    // If user logged in via OAuth (Google), ensure their name from OAuth metadata
+    // Cek user login dulu
+    let currentUser = null;
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        currentUser = user;
+        // Set user_id untuk materi progress system
+        if (window.materiProgressSystem && window.materiProgressSystem.setUserId) {
+          window.materiProgressSystem.setUserId(user.id);
+        }
+      }
+    } catch(e) {
+      console.warn('Error getting user in init', e);
+    }
+
+    // Load progress HANYA jika user login
+    if (currentUser) {
+      try{ 
+        if (window.materiProgressSystem && window.materiProgressSystem.loadProgress) {
+          await window.materiProgressSystem.loadProgress();
+        } else {
+          console.warn('Materi progress system not available');
+        }
+      }catch(e){ 
+        console.warn('loadProgressFromSupabase failed', e); 
+      }
+    }
+
+    // Jika user logged in via OAuth (Google), ensure their name from OAuth metadata
     // is saved into the app's profile table so the UI shows the correct display name.
     async function upsertProfileFromOAuth(){
       try{
@@ -1421,25 +1408,33 @@ setTimeout(()=>{
 
     try{ if(typeof upsertProfileFromOAuth === 'function') await upsertProfileFromOAuth(); }catch(e){ console.warn('upsertProfileFromOAuth failed', e); }
 
-    try{ if(typeof loadProgressFromSupabase === 'function') await loadProgressFromSupabase(); }catch(e){ console.warn('loadProgressFromSupabase failed', e); }
-    // Attempt to flush any locally queued progress for this user
-    try{ if(typeof flushProgressQueue === 'function') await flushProgressQueue(); }catch(e){ console.warn('flushProgressQueue failed', e); }
     try{ if(typeof showProfileView === 'function') await showProfileView(); }catch(e){ console.warn('showProfileView failed', e); }
 
-    // Subscribe to auth state changes so we can switch the in-memory progress state
-    // to the currently active account (prevents anonymous/local data from leaking
-    // into a different signed-in account and ensures UI reflects the correct user).
+    // Subscribe to auth state changes
     try{
       const sup = (typeof window !== 'undefined' && window.supabase) ? window.supabase : (typeof supabase !== 'undefined' ? supabase : null);
       if(sup && sup.auth && typeof sup.auth.onAuthStateChange === 'function'){
         const { data: authSub } = sup.auth.onAuthStateChange(async (event, session) => {
           try{ console.debug('supabase auth state change', event); }catch(_){}
           if(event === 'SIGNED_IN'){
-            // A user signed in: reload authoritative progress from server (or per-user local)
-            user_id = session && session.user ? session.user.id : null;
-            loaded = false; // force reload
-            try{ if(typeof loadProgressFromSupabase === 'function') await loadProgressFromSupabase(); }catch(e){ console.warn('auth listener: loadProgressFromSupabase failed', e); }
-            try{ if(typeof flushProgressQueue === 'function') await flushProgressQueue(); }catch(e){ console.warn('auth listener: flushProgressQueue failed', e); }
+            // A user signed in: reload authoritative progress from server
+            const user_id = session && session.user ? session.user.id : null;
+            
+            // Set user_id untuk materi progress system
+            if (window.materiProgressSystem && window.materiProgressSystem.setUserId) {
+              window.materiProgressSystem.setUserId(user_id);
+            }
+            
+            // Tunggu sebentar sebelum load progress
+            setTimeout(async () => {
+              try{ 
+                if(window.materiProgressSystem && window.materiProgressSystem.loadProgress) {
+                  await window.materiProgressSystem.loadProgress();
+                }
+              }catch(e){ 
+                console.warn('auth listener: loadProgress failed', e); 
+              }
+            }, 1000);
             
             // Immediately show profile view after login
             try{ if(typeof showProfileView === 'function') await showProfileView(); }catch(e){ console.warn('auth listener: showProfileView failed', e); }
@@ -1459,16 +1454,10 @@ setTimeout(()=>{
             }, 100);
             
           } else if(event === 'SIGNED_OUT'){
-            // User signed out: clear user_id and reset state to all false
-            user_id = null;
-            loaded = false;
-            try{
-              // Reset state to all false - clean slate
-              state = {};
-              MODULES.forEach(m => { state[m] = false; });
-              // Don't load anonymous progress - keep it clean
-            }catch(e){ console.warn('auth listener: failed resetting state', e); }
-            try{ updateProgressUI(); refreshButtons(); }catch(e){}
+            // User signed out: reset materi progress state
+            if (window.materiProgressSystem && window.materiProgressSystem.setUserId) {
+              window.materiProgressSystem.setUserId(null);
+            }
             try{ if(typeof showProfileView === 'function') await showProfileView(); }catch(e){ console.warn('auth listener: showProfileView failed after signout', e); }
           }
         });
