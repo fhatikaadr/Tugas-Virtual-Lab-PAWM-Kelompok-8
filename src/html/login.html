@@ -1,13 +1,13 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <script src="/src/js/supabase-client.js"></script>
+  <script src="../js/supabase-client.js"></script>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>PhySphere — Login & Register</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/src/css/style.css">
+  <link rel="stylesheet" href="../css/style.css">
 </head>
 <body class="auth-body min-h-screen">
   <!-- Container dengan Layout Split -->
@@ -251,7 +251,7 @@
         if (!window.supabase) return;
         const { data: { session } } = await supabase.auth.getSession();
         if (session) {
-          window.location.href = '/PhySphere';
+          window.location.href = 'PhySphere.html';
         }
       })();
 
@@ -291,7 +291,7 @@
         }
 
         try{ sessionStorage.setItem('pysphere_active_page','beranda'); }catch(e){}
-        window.location.href = '/PhySphere';
+        window.location.href = 'PhySphere.html';
       });
       
       // REGISTER Form
@@ -350,7 +350,7 @@
 
         msg.textContent = 'Berhasil! Mengarahkan...';
         try{ sessionStorage.setItem('pysphere_active_page','beranda'); }catch(e){}
-        window.location.href = '/PhySphere';
+        window.location.href = 'PhySphere.html';
       });
       
       // Google OAuth Login
