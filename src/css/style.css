@@ -3,6 +3,12 @@
   --yellow-400:#fde047; --yellow-300:#fde68a; --yellow-500:#eab308;
   --glass: rgba(255,255,255,0.6);
 }
+/* Ensure utility 'hidden' works even if Tailwind is unavailable */
+.hidden{ display:none !important; pointer-events:none !important; }
+
+/* Keep header above normal content so nav buttons remain clickable */
+header{ position:relative; z-index:20; }
+
 body{font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial; background:linear-gradient(180deg,var(--purple-50),#fefce8);}
 .card{background:linear-gradient(180deg,rgba(255,255,255,0.7),rgba(255,255,255,0.85));backdrop-filter:blur(6px);box-shadow:0 8px 24px rgba(168,85,247,0.08);border-radius:16px;padding:1rem}
 .vlab-button{padding:.6rem 1rem;border-radius:12px;font-weight:600;box-shadow:0 8px 20px rgba(168,85,247,0.08);}
