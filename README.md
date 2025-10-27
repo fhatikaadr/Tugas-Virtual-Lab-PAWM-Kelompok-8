@@ -91,29 +91,6 @@ Aplikasi ini bergantung pada beberapa tabel di database Supabase (berdasarkan `s
     * Tabel (atau View) yang menyimpan skor *tertinggi* pengguna untuk setiap `quiz_key`.
     * Kolom utama: `user_id` (UUID), `quiz_key` (text), `best_percentage` (numeric), `updated_at` (timestamptz).
 
-## 📂 Struktur Direktori Proyek
-Tugas-Virtual-Lab-PAWM-Kelompok-8/
-├── src/
-│   ├── css/
-│   │   └── style.css           # Styling kustom
-│   ├── html/
-│   │   ├── index.html          # Halaman landing (pilihan Login/Register)
-│   │   ├── login.html          # Halaman Login
-│   │   ├── register.html       # Halaman Register
-│   │   └── PhySphere.html      # Aplikasi utama (SPA)
-│   ├── img/
-│   │   ├── google-logo.png     # Logo Google
-│   │   └── logo PhySphere.png  # Logo Aplikasi
-│   └── js/
-│       ├── button-press.js     # Efek visual tombol
-│       ├── nav-buttons.js      # Logika navigasi antar halaman
-│       ├── script-full.js      # Logika utama (VLab, Kuis, Auth, DB)
-│       ├── script.js           # Skrip dasar (fallback)
-│       ├── supabase-client.js  # Klien inisialisasi Supabase
-│       └── supabase.min.js     # Library Supabase (Skypack CDN)
-├── README.md                   # (File ini)
-└── vercel.json                 # Konfigurasi deployment Vercel (Rewrites)
-
 ## 🚀 Cara Menjalankan Proyek
 
 ### Prasyarat
