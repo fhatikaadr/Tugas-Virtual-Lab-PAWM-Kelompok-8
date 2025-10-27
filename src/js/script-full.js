@@ -1141,14 +1141,15 @@ setTimeout(()=>{
       // Try to save to Supabase; if unavailable or save fails, enqueue locally or prompt login
       let saved = false;
       if (!clickUser) {
-        // Not logged in: ask user to login so progress is saved per-account.
+        // Not logged in: require login so progress is saved per-account.
+        // Redirect immediately to the login page.
         try{
-          const goLogin = confirm('Kamu belum login. Untuk menyimpan progress ke akunmu, silakan login sekarang. Tekan OK untuk pergi ke halaman login, atau Cancel untuk menyimpan lokal sebagai anonim.');
-          if(goLogin){ window.location.href = '/login.html'; return; }
-          // user chose to stay anonymous: enqueue local anonymous payload
-          console.warn('User chose to remain anonymous; enqueueing progress');
-          enqueueProgress(payload);
-        }catch(e){ enqueueProgress(payload); }
+          window.location.href = '/login.html';
+          return;
+        }catch(e){
+          // fallback to index if login path unavailable
+          try{ window.location.href = '/'; return; }catch(_){ /* ignore */ }
+        }
       } else {
         try{
           // ensure user_id is set to the clicked user's id
@@ -1180,6 +1181,40 @@ setTimeout(()=>{
       }
   }, { passive: true, capture: true });
   });
+
+  // --- Small UI notice helper: non-blocking message with optional action ---
+  function showSyncNotice(message, actionLabel, actionHref){
+    try{
+      let container = document.getElementById('pysphere-sync-notice');
+      if(!container){
+        container = document.createElement('div');
+        container.id = 'pysphere-sync-notice';
+        container.style.position = 'fixed';
+        container.style.right = '16px';
+        container.style.bottom = '16px';
+        container.style.zIndex = '9999';
+        container.style.maxWidth = '320px';
+        document.body.appendChild(container);
+      }
+      const card = document.createElement('div');
+      card.className = 'p-3 bg-white rounded-lg shadow-md text-sm';
+      card.style.marginTop = '8px';
+      card.style.border = '1px solid rgba(0,0,0,0.06)';
+      card.textContent = message;
+      if(actionLabel && actionHref){
+        const a = document.createElement('a');
+        a.href = actionHref;
+        a.textContent = actionLabel;
+        a.style.marginLeft = '10px';
+        a.style.fontWeight = '600';
+        a.className = 'pysphere-sync-action';
+        card.appendChild(a);
+      }
+      container.appendChild(card);
+      // auto-remove after 6s
+      setTimeout(()=>{ try{ if(card && card.parentNode) card.parentNode.removeChild(card); }catch(e){} }, 6000);
+    }catch(e){ console.warn('showSyncNotice failed', e); }
+  }
 
   // --- MEMUAT DATA SAAT HALAMAN DIBUKA ---
   // Panggil fungsi load baru kita -- defer until Supabase client is ready
