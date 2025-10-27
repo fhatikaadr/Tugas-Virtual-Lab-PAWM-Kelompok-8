@@ -32,6 +32,8 @@ document.querySelectorAll('.tab-button').forEach(btn=>btn.addEventListener('clic
   document.getElementById(btn.dataset.page+'-page').classList.remove('hidden');
   document.querySelectorAll('.tab-button').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
+  // If the user opened the Profile tab, refresh profile view (ensure auth state is reflected)
+  try{ if(btn.dataset.page === 'profile' && typeof showProfileView === 'function') showProfileView(); }catch(e){}
   // if vlab tab opened, ensure canvas resizes & redraws after layout (no autoplay)
   if(btn.dataset.page === 'vlab'){
     setTimeout(()=>{ try{ if(window.vlabRefresh) window.vlabRefresh(); }catch(e){} },120);
@@ -1167,8 +1169,27 @@ setTimeout(()=>{
 
 // --- FUNGSI PROFIL BARU ---
   async function showProfileView(){
-    // Ambil data user yang sedang login dari Supabase
-    const { data: { user } } = await supabase.auth.getUser();
+    // Ensure Supabase SDK is ready and attempt to get the current user/session
+    try{ await (window.__supabaseReady || Promise.resolve()); }catch(e){ console.warn('supabase init wait failed in showProfileView', e); }
+
+    let user = null;
+    try{
+      const sup = (typeof window !== 'undefined' && window.supabase) ? window.supabase : (typeof supabase !== 'undefined' ? supabase : null);
+      if(!sup || !sup.auth){ throw new Error('supabase.auth not available'); }
+
+      // Prefer getUser(); if not present/empty try getSession()
+      try{
+        const res = await sup.auth.getUser();
+        user = res && res.data && res.data.user ? res.data.user : null;
+      }catch(e){ console.debug('supabase.auth.getUser() failed', e); }
+
+      if(!user){
+        try{
+          const sess = await sup.auth.getSession();
+          user = sess && sess.data && sess.data.session ? sess.data.session.user : null;
+        }catch(e){ console.debug('supabase.auth.getSession() failed', e); }
+      }
+    }catch(e){ console.warn('showProfileView: cannot access supabase auth', e); user = null; }
 
     if(user){
       el('not-logged').classList.add('hidden');
@@ -1319,8 +1340,9 @@ setTimeout(()=>{
     try{
       // wait for SDK if necessary
       await (window.__supabaseReady || Promise.resolve());
-      if (typeof supabase !== 'undefined' && supabase && supabase.auth && typeof supabase.auth.signOut === 'function'){
-        const { error } = await supabase.auth.signOut();
+      const sup = (typeof window !== 'undefined' && window.supabase) ? window.supabase : (typeof supabase !== 'undefined' ? supabase : null);
+      if (sup && sup.auth && typeof sup.auth.signOut === 'function'){
+        const { error } = await sup.auth.signOut();
         if(error) console.warn('supabase.signOut returned error', error);
       } else {
         console.warn('supabase client not available during logout; proceeding with client-side cleanup');
