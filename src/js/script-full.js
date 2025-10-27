@@ -34,6 +34,15 @@ document.querySelectorAll('.tab-button').forEach(btn=>btn.addEventListener('clic
   btn.classList.add('active');
   // If the user opened the Profile tab, refresh profile view (ensure auth state is reflected)
   try{ if(btn.dataset.page === 'profile' && typeof window.showProfileView === 'function') window.showProfileView(); }catch(e){}
+  // If the user opened the Materi tab, refresh button states to reflect current progress
+  if(btn.dataset.page === 'materi'){
+    setTimeout(()=>{ 
+      try{ 
+        if(typeof window.updateProgressUI === 'function') window.updateProgressUI();
+        if(typeof window.refreshButtons === 'function') window.refreshButtons();
+      }catch(e){ console.warn('Failed to refresh materi UI', e); } 
+    }, 100);
+  }
   // if vlab tab opened, ensure canvas resizes & redraws after layout (no autoplay)
   if(btn.dataset.page === 'vlab'){
     setTimeout(()=>{ try{ if(window.vlabRefresh) window.vlabRefresh(); }catch(e){} },120);
@@ -1036,7 +1045,7 @@ setTimeout(()=>{
     }catch(e){ console.warn('flushProgressQueue failed', e); }
   }
 
-  // --- FUNGSI LAMA (Tidak berubah) ---
+  // --- FUNGSI LAMA (Tidak berubah) - Expose as global for tab navigation ---
   const updateProgressUI = () => {
     const total = MODULES.length;
     const done = Object.keys(state).filter(k => state[k]).length;
@@ -1046,8 +1055,9 @@ setTimeout(()=>{
     if(fill) fill.style.width = pct + '%';
     if(pctEl) pctEl.textContent = pct + '%';
   };
+  window.updateProgressUI = updateProgressUI;
 
-  // --- FUNGSI LAMA (Tidak berubah) ---
+  // --- FUNGSI LAMA (Tidak berubah) - Expose as global for tab navigation ---
   const refreshButtons = () => {
     MODULES.forEach(id=>{
       const btn = document.querySelector(`.mark-read[data-module='${id}']`);
@@ -1064,6 +1074,7 @@ setTimeout(()=>{
       }
     });
   };
+  window.refreshButtons = refreshButtons;
 
   // --- FUNGSI LAMA (Tidak berubah, tapi pastikan 'showModule' ada) ---
   const materiButtons = Array.from(document.querySelectorAll('.materi-link'));
