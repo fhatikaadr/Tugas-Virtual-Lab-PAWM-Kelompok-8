@@ -1360,36 +1360,25 @@ setTimeout(()=>{
   // Hapus event listener 'regSubmit' dan 'loginSubmit' dari file ini.
 
   // --- LOGOUT BARU ---
-  if(logoutBtn) logoutBtn.addEventListener('click', async ()=>{
-    try{
-      // wait for SDK if necessary
-      await (window.__supabaseReady || Promise.resolve());
-      const sup = (typeof window !== 'undefined' && window.supabase) ? window.supabase : (typeof supabase !== 'undefined' ? supabase : null);
-      if (sup && sup.auth && typeof sup.auth.signOut === 'function'){
-        const { error } = await sup.auth.signOut();
-        if(error) console.warn('supabase.signOut returned error', error);
-      } else {
-        console.warn('supabase client not available during logout; proceeding with client-side cleanup');
-      }
-    }catch(e){
-      console.warn('Logout failed or threw an exception', e);
-    }
-
-    // ensure we clear local active page and force navigation regardless of signOut success
+  if(logoutBtn) logoutBtn.addEventListener('click', ()=>{
+    // LANGSUNG redirect tanpa menunggu apapun!
+    // Clear local state dulu
     try{ sessionStorage.removeItem('pysphere_active_page'); }catch(e){}
-    // reset local user tracking state to be safe
-    try{ user_id = null; loaded = false; }catch(e){}
+    try{ localStorage.removeItem('pysphere_active_page'); }catch(e){}
     
-    // Navigate to index.html (welcome page) immediately
-    try{
-      window.location.replace('/src/html/index.html');
-    }catch(e){ 
-      // Fallback jika replace gagal
-      try{ window.location.href = '/src/html/index.html'; }catch(_){ 
-        // Last resort: try root
-        try{ window.location.replace('/'); }catch(__){ window.location.reload(); }
-      } 
-    }
+    // Sign out di background (tidak menunggu)
+    (async () => {
+      try{
+        await (window.__supabaseReady || Promise.resolve());
+        const sup = (typeof window !== 'undefined' && window.supabase) ? window.supabase : (typeof supabase !== 'undefined' ? supabase : null);
+        if (sup && sup.auth && typeof sup.auth.signOut === 'function'){
+          sup.auth.signOut().catch(e => console.warn('Background signOut error:', e));
+        }
+      }catch(e){ console.warn('Background signOut failed', e); }
+    })();
+    
+    // LANGSUNG redirect ke halaman selamat datang - TIDAK MENUNGGU!
+    window.location.href = '/src/html/index.html';
   });
 
   // initialize Supabase-dependent pieces after the SDK is ready
