@@ -865,15 +865,19 @@ setTimeout(()=>{
       
       if (!user) {
         console.warn('⚠️ User NOT logged in - progress will NOT be saved to database');
+        user_id = null; // Clear user_id
         if(warning) warning.classList.remove('hidden');
         return false;
       } else {
         console.log('✅ User logged in:', user.email);
+        user_id = user.id; // SET USER_ID HERE! 🔥
+        console.log('✅ user_id set to:', user_id);
         if(warning) warning.classList.add('hidden');
         return true;
       }
     }catch(e){
       console.error('Error checking login status:', e);
+      user_id = null;
       return false;
     }
   }
@@ -892,9 +896,11 @@ setTimeout(()=>{
     const { data: { user } } = await sup.auth.getUser();
     if (!user) {
       console.log("User tidak login, tidak bisa load progress.");
+      user_id = null;
       return; // User tidak login
     }
     user_id = user.id;
+    console.log('✅ loadProgressFromSupabase: user_id set to:', user_id);
 
     // Ambil data dari tabel 'profile' (coba 'profile' lalu 'profiles')
     const fetched = await fetchProfileRow(user_id, 'materi_progress');
@@ -1179,12 +1185,26 @@ setTimeout(()=>{
       
       // DEBUG: Check Supabase and user status
       const sup = (typeof window !== 'undefined' && window.supabase) ? window.supabase : (typeof supabase !== 'undefined' ? supabase : null);
-      console.log('🔍 Debug save - supabase client:', sup ? 'Available' : 'NOT AVAILABLE');
+      
+      // CRITICAL FIX: Re-check and set user_id if not already set
+      if(!user_id && sup && sup.auth){
+        try{
+          const { data: { user } } = await sup.auth.getUser();
+          if(user){
+            user_id = user.id;
+            console.log('� FIXED: user_id was null, now set to:', user_id);
+          }
+        }catch(e){
+          console.error('Failed to get user on button click:', e);
+        }
+      }
+      
+      console.log('�🔍 Debug save - supabase client:', sup ? 'Available' : 'NOT AVAILABLE');
       console.log('🔍 Debug save - user_id:', user_id || 'NOT LOGGED IN');
       console.log('🔍 Debug save - typeof supabase:', typeof supabase);
       console.log('🔍 Debug save - window.supabase:', typeof window.supabase);
       
-      if (typeof supabase === 'undefined' || !user_id) {
+      if (!sup || !user_id) {
         console.warn('❌ Cannot save to Supabase (not logged in or SDK not ready), enqueueing');
         enqueueProgress(payload);
       } else {
@@ -1484,7 +1504,13 @@ setTimeout(()=>{
     try{ if(typeof upsertProfileFromOAuth === 'function') await upsertProfileFromOAuth(); }catch(e){ console.warn('upsertProfileFromOAuth failed', e); }
 
     // Check login status and show warning if not logged in
-    try{ if(typeof checkLoginStatus === 'function') await checkLoginStatus(); }catch(e){ console.warn('checkLoginStatus failed', e); }
+    // IMPORTANT: This also SETS user_id variable!
+    try{ 
+      if(typeof checkLoginStatus === 'function') {
+        const isLoggedIn = await checkLoginStatus();
+        console.log('🔍 Init: checkLoginStatus result:', isLoggedIn, 'user_id:', user_id);
+      }
+    }catch(e){ console.warn('checkLoginStatus failed', e); }
 
     try{ if(typeof loadProgressFromSupabase === 'function') await loadProgressFromSupabase(); }catch(e){ console.warn('loadProgressFromSupabase failed', e); }
     // Attempt to flush any locally queued progress for this user
