@@ -1105,17 +1105,6 @@ setTimeout(()=>{
       try{ e.stopImmediatePropagation(); }catch(_){ /* ignore */ }
       const mod = btn.dataset.module;
       if(!mod) return;
-      // Ensure Supabase SDK is ready before checking auth / saving
-      try{ await (window.__supabaseReady || Promise.resolve()); }catch(e){ console.warn('supabase init wait failed in mark-read handler', e); }
-      const sup = (typeof window !== 'undefined' && window.supabase) ? window.supabase : (typeof supabase !== 'undefined' ? supabase : null);
-      // Check if user is logged in. Prefer getUser(); fallback to getSession()
-      let clickUser = null;
-      try{
-        if(sup && sup.auth){
-          try{ const g = await sup.auth.getUser(); clickUser = g && g.data && g.data.user ? g.data.user : null; }catch(e){ console.debug('getUser failed in handler', e); }
-          if(!clickUser){ try{ const s = await sup.auth.getSession(); clickUser = s && s.data && s.data.session ? s.data.session.user : null; }catch(e){ console.debug('getSession failed in handler', e); } }
-        }
-      }catch(e){ console.warn('auth check failed in mark-read handler', e); }
       // Optimistic UI: toggle local state and show a saving indicator on the clicked button
       const prev = !!state[mod];
       state[mod] = !prev;
@@ -1138,22 +1127,13 @@ setTimeout(()=>{
         }
       }catch(e){/* ignore */}
 
-      // Try to save to Supabase; if unavailable or save fails, enqueue locally or prompt login
+      // Try to save to Supabase; if unavailable or save fails, enqueue locally
       let saved = false;
-      if (!clickUser) {
-        // Not logged in: require login so progress is saved per-account.
-        // Redirect immediately to the login page.
-        try{
-          window.location.href = 'login.html';
-          return;
-        }catch(e){
-          // fallback to index if login path unavailable
-          try{ window.location.href = 'index.html'; return; }catch(_){ /* ignore */ }
-        }
+      if (typeof supabase === 'undefined' || !user_id) {
+        console.warn('Cannot save to Supabase (not logged in or SDK not ready), enqueueing');
+        enqueueProgress(payload);
       } else {
         try{
-          // ensure user_id is set to the clicked user's id
-          user_id = clickUser.id;
           const ok = await saveProgressToSupabase();
           if (!ok) {
             console.warn('saveProgressToSupabase returned false, enqueueing');
@@ -1182,40 +1162,6 @@ setTimeout(()=>{
   }, { passive: true, capture: true });
   });
 
-  // --- Small UI notice helper: non-blocking message with optional action ---
-  function showSyncNotice(message, actionLabel, actionHref){
-    try{
-      let container = document.getElementById('pysphere-sync-notice');
-      if(!container){
-        container = document.createElement('div');
-        container.id = 'pysphere-sync-notice';
-        container.style.position = 'fixed';
-        container.style.right = '16px';
-        container.style.bottom = '16px';
-        container.style.zIndex = '9999';
-        container.style.maxWidth = '320px';
-        document.body.appendChild(container);
-      }
-      const card = document.createElement('div');
-      card.className = 'p-3 bg-white rounded-lg shadow-md text-sm';
-      card.style.marginTop = '8px';
-      card.style.border = '1px solid rgba(0,0,0,0.06)';
-      card.textContent = message;
-      if(actionLabel && actionHref){
-        const a = document.createElement('a');
-        a.href = actionHref;
-        a.textContent = actionLabel;
-        a.style.marginLeft = '10px';
-        a.style.fontWeight = '600';
-        a.className = 'pysphere-sync-action';
-        card.appendChild(a);
-      }
-      container.appendChild(card);
-      // auto-remove after 6s
-      setTimeout(()=>{ try{ if(card && card.parentNode) card.parentNode.removeChild(card); }catch(e){} }, 6000);
-    }catch(e){ console.warn('showSyncNotice failed', e); }
-  }
-
   // --- MEMUAT DATA SAAT HALAMAN DIBUKA ---
   // Panggil fungsi load baru kita -- defer until Supabase client is ready
   // (we'll initialize Supabase-dependent calls in a single async init below)
@@ -1236,6 +1182,7 @@ setTimeout(()=>{
 
 // --- FUNGSI PROFIL BARU ---
   async function showProfileView(){
+    console.log('showProfileView called'); // DEBUG
     // Show loading state
     const loggedInEl = el('logged-in');
     const notLoggedEl = el('not-logged');
@@ -1262,6 +1209,8 @@ setTimeout(()=>{
       }
     }catch(e){ console.warn('showProfileView: cannot access supabase auth', e); user = null; }
 
+    console.log('showProfileView user:', user); // DEBUG
+
     if(user){
       el('not-logged').classList.add('hidden');
       el('logged-in').classList.remove('hidden');
@@ -1270,6 +1219,8 @@ setTimeout(()=>{
       const fetchedProfile = await fetchProfileRow(user.id, 'full_name');
       const profileData = fetchedProfile && fetchedProfile.data ? fetchedProfile.data : null;
       if(fetchedProfile && fetchedProfile.error) console.debug('showProfileView: profile fetch error', fetchedProfile.error);
+      
+      console.log('showProfileView profileData:', profileData); // DEBUG
 
   // Prefer full_name from the app's profile table; fall back to OAuth metadata (Google name), then email
   let displayName = null;
@@ -1283,6 +1234,8 @@ setTimeout(()=>{
   }
   if (!displayName) displayName = user && user.email ? user.email : 'Pengguna';
 
+      console.log('showProfileView displayName:', displayName); // DEBUG
+      
       el('profile-name').textContent = displayName;
       el('profile-email').textContent = user.email || '';
       // hide the hint text when logged in
@@ -1427,9 +1380,8 @@ setTimeout(()=>{
       }catch(e){ console.warn('Background signOut failed', e); }
     })();
     
-  // LANGSUNG redirect ke halaman selamat datang - TIDAK MENUNGGU!
-  // Use relative path so it works when opened from filesystem
-  window.location.href = 'index.html';
+    // LANGSUNG redirect ke halaman selamat datang - TIDAK MENUNGGU!
+    window.location.href = '/src/html/index.html';
   });
 
   // initialize Supabase-dependent pieces after the SDK is ready
