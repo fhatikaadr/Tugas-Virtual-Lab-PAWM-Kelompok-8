@@ -8,9 +8,6 @@ var supabase = window.supabase;
 if (window.__supabaseReady && typeof window.__supabaseReady.then === 'function') {
   window.__supabaseReady.then(() => { try{ supabase = window.supabase; }catch(e){} }).catch(()=>{});
 }
-
-// Wrap navigation setup in DOMContentLoaded to ensure elements exist
-function initNavigation() {
 // --- NAVIGATION ---
 document.querySelectorAll('.tab-button').forEach(btn=>btn.addEventListener('click',()=>{
   // If user tries to open the VLab, block access until materi progress reaches 100%
@@ -65,14 +62,6 @@ document.querySelectorAll('.tab-button').forEach(btn=>btn.addEventListener('clic
     });
   }
 })();
-}
-
-// Call initNavigation when DOM is ready
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initNavigation);
-} else {
-  initNavigation();
-}
 
 // --- Quiz Data: separate QUIZZES per topic ---
 function shuffleArray(arr){return arr.slice().sort(()=>Math.random()-0.5)}
