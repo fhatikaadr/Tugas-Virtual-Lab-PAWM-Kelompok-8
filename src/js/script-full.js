@@ -36,9 +36,14 @@ document.querySelectorAll('.tab-button').forEach(btn=>btn.addEventListener('clic
   try{ if(btn.dataset.page === 'profile' && typeof window.showProfileView === 'function') window.showProfileView(); }catch(e){}
   // If the user opened the Materi tab, refresh button states to reflect current progress
   if(btn.dataset.page === 'materi'){
-    setTimeout(()=>{ 
+    setTimeout(async ()=>{ 
       try{ 
         if(typeof window.checkLoginStatus === 'function') window.checkLoginStatus();
+        // Force reload progress from database to sync UI
+        if(typeof window.loadProgressFromSupabase === 'function') {
+          window.loadedProgress = false; // Reset loaded flag to force reload
+          await window.loadProgressFromSupabase();
+        }
         if(typeof window.updateProgressUI === 'function') window.updateProgressUI();
         if(typeof window.refreshButtons === 'function') window.refreshButtons();
       }catch(e){ console.warn('Failed to refresh materi UI', e); } 
@@ -854,6 +859,12 @@ setTimeout(()=>{
   let loaded = false; // Flag agar tidak double-load
   let user_id = null; // ID user yang sedang login
 
+  // Expose loaded flag globally so it can be reset from outside
+  Object.defineProperty(window, 'loadedProgress', {
+    get: () => loaded,
+    set: (val) => { loaded = val; }
+  });
+
   // --- FUNGSI: Check login status dan tampilkan warning ---
   async function checkLoginStatus() {
     const sup = (typeof window !== 'undefined' && window.supabase) ? window.supabase : (typeof supabase !== 'undefined' ? supabase : null);
@@ -885,7 +896,10 @@ setTimeout(()=>{
 
 // --- FUNGSI BARU: Mengambil progress dari Supabase ---
   async function loadProgressFromSupabase() {
-    if (loaded) return; // Mencegah double-load
+    if (loaded) {
+      console.log('⏭️ loadProgressFromSupabase: already loaded, skipping...');
+      return; // Mencegah double-load
+    }
 
     const sup = (typeof window !== 'undefined' && window.supabase) ? window.supabase : (typeof supabase !== 'undefined' ? supabase : null);
     if(!sup || !sup.auth){
@@ -962,6 +976,7 @@ setTimeout(()=>{
     updateProgressUI();
     refreshButtons();
   }
+  window.loadProgressFromSupabase = loadProgressFromSupabase;
 
 // --- FUNGSI BARU: Menyimpan progress ke Supabase ---
   async function saveProgressToSupabase() {
