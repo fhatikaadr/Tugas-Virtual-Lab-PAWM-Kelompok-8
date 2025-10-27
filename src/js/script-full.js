@@ -404,10 +404,13 @@ function updateGlobalScore(){
 // Global helper: try fetching a profile row from either 'profile' or 'profiles'.
 // Returns { data, table } on success or { error } on failure.
 async function fetchProfileRow(user_id, selectCols = '*'){
+  const sup = (typeof window !== 'undefined' && window.supabase) ? window.supabase : (typeof supabase !== 'undefined' ? supabase : null);
+  if(!sup) return { error: new Error('supabase client not available') };
+  
   const tableCandidates = ['profile','profiles'];
   for(const tbl of tableCandidates){
     try{
-      const res = await supabase.from(tbl).select(selectCols).eq('id', user_id).single();
+      const res = await sup.from(tbl).select(selectCols).eq('id', user_id).single();
       if(!res || res.error){
         console.debug(`fetchProfileRow: table=${tbl} returned error`, res && res.error ? res.error : res);
         continue;
@@ -427,16 +430,19 @@ window.renderCompletedResults = async function(){
     const panel = document.getElementById('quiz-result-panel');
     if(!panel) return;
     
+    const sup = (typeof window !== 'undefined' && window.supabase) ? window.supabase : (typeof supabase !== 'undefined' ? supabase : null);
+    if(!sup || !sup.auth) return;
+    
     // Ambil data skor dari database
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { user } } = await sup.auth.getUser();
     if (!user) return;
 
     // Prefer reading best percentages from `user_best_score` table.
     // Fallback: compute best percentage per topic from quiz_history.
     try{
       const [{ data: bests, error: bErr }, { data: history, error: hErr }] = await Promise.all([
-        supabase.from('user_best_score').select('quiz_key, best_percentage, updated_at').eq('user_id', user.id),
-        supabase.from('quiz_history').select('quiz_key, percentage, created_at').eq('user_id', user.id)
+        sup.from('user_best_score').select('quiz_key, best_percentage, updated_at').eq('user_id', user.id),
+        sup.from('quiz_history').select('quiz_key, percentage, created_at').eq('user_id', user.id)
       ]);
 
       if(bErr) console.debug('renderCompletedResults: user_best_score fetch error', bErr);
@@ -896,10 +902,13 @@ setTimeout(()=>{
       const hasAnyKey = Object.keys(mp || {}).length > 0;
       if (!hasAnyKey) {
         try{
+          const sup = (typeof window !== 'undefined' && window.supabase) ? window.supabase : (typeof supabase !== 'undefined' ? supabase : null);
+          if(!sup) throw new Error('supabase client not available');
+          
           // try to persist default so other clients see it
           // Upsert into the detected table (fallback to 'profile')
           const targetTable = (fetched && fetched.table) ? fetched.table : 'profile';
-          const { error: upErr, data: upData } = await supabase.from(targetTable).upsert({ id: user_id, materi_progress: DEFAULT_MATERI_PROGRESS }, { onConflict: 'id' }).select();
+          const { error: upErr, data: upData } = await sup.from(targetTable).upsert({ id: user_id, materi_progress: DEFAULT_MATERI_PROGRESS }, { onConflict: 'id' }).select();
           if(upErr) throw upErr;
           console.debug('loadProgressFromSupabase: wrote default materi_progress for user', user_id, upData);
           // also update local state to defaults
@@ -920,6 +929,12 @@ setTimeout(()=>{
   async function saveProgressToSupabase() {
     if (!user_id || !loaded) return false; 
 
+    const sup = (typeof window !== 'undefined' && window.supabase) ? window.supabase : (typeof supabase !== 'undefined' ? supabase : null);
+    if(!sup) {
+      console.warn('saveProgressToSupabase: supabase client not available');
+      return false;
+    }
+
     try {
       // Ensure we persist an object with all module keys explicitly set
       // so other clients / UI can rely on presence of keys.
@@ -934,7 +949,7 @@ setTimeout(()=>{
       const tables = ['profile','profiles'];
       for(const tbl of tables){
         try{
-          const { error: updError, data: updData } = await supabase
+          const { error: updError, data: updData } = await sup
             .from(tbl)
             .update({ materi_progress: payload })
             .eq('id', user_id)
@@ -949,7 +964,7 @@ setTimeout(()=>{
       // If update did not succeed on any table, fallback to upsert on candidates
       for(const tbl of tables){
         try{
-          const { error: upError, data: upData } = await supabase.from(tbl).upsert({ id: user_id, materi_progress: payload }, { onConflict: 'id' }).select();
+          const { error: upError, data: upData } = await sup.from(tbl).upsert({ id: user_id, materi_progress: payload }, { onConflict: 'id' }).select();
           if(!upError){ console.debug('saveProgress upsert ok on', tbl, upData); return true; }
         }catch(e){ console.debug('saveProgress upsert failed on', tbl, e); }
       }
@@ -980,7 +995,9 @@ setTimeout(()=>{
   }
 
   async function flushProgressQueue(){
-    if (typeof supabase === 'undefined') return; // can't flush yet
+    const sup = (typeof window !== 'undefined' && window.supabase) ? window.supabase : (typeof supabase !== 'undefined' ? supabase : null);
+    if (!sup) return; // can't flush yet
+    
     try{
       const raw = localStorage.getItem(QUEUE_KEY);
       if(!raw) return;
@@ -1001,7 +1018,7 @@ setTimeout(()=>{
           let ok=false;
           for(const tbl of tables){
             try{
-              const up = await supabase.from(tbl).upsert({ id: targetUser, materi_progress: item.payload }, { onConflict: 'id' }).select();
+              const up = await sup.from(tbl).upsert({ id: targetUser, materi_progress: item.payload }, { onConflict: 'id' }).select();
               if(!up.error){ console.debug('flushProgressQueue upsert ok on', tbl, up.data); ok=true; break; }
             }catch(e){ console.debug('flushProgressQueue upsert failed on', tbl, e); }
           }
@@ -1219,10 +1236,13 @@ setTimeout(()=>{
 
       // fetch quiz history and best scores
       try{
+        const sup = (typeof window !== 'undefined' && window.supabase) ? window.supabase : (typeof supabase !== 'undefined' ? supabase : null);
+        if(!sup) throw new Error('supabase client not available');
+        
         const [{ data: history, error: hErr }, { data: bests, error: bErr }] = await Promise.all([
-          supabase.from('quiz_history').select('id, quiz_key, quiz_name, score, max_score, percentage, passed, created_at').eq('user_id', user.id).order('created_at', {ascending:false}).limit(200),
+          sup.from('quiz_history').select('id, quiz_key, quiz_name, score, max_score, percentage, passed, created_at').eq('user_id', user.id).order('created_at', {ascending:false}).limit(200),
             // Your DB uses table `user_best_score` (singular) with columns: quiz_key, best_percentage, updated_at
-            supabase.from('user_best_score').select('quiz_key, best_percentage, updated_at').eq('user_id', user.id)
+            sup.from('user_best_score').select('quiz_key, best_percentage, updated_at').eq('user_id', user.id)
         ]);
 
         if(hErr) console.error('history fetch error', hErr);
@@ -1382,8 +1402,10 @@ setTimeout(()=>{
     // is saved into the app's profile table so the UI shows the correct display name.
     async function upsertProfileFromOAuth(){
       try{
-        if(!supabase || !supabase.auth) return;
-        const { data: { user } } = await supabase.auth.getUser();
+        const sup = (typeof window !== 'undefined' && window.supabase) ? window.supabase : (typeof supabase !== 'undefined' ? supabase : null);
+        if(!sup || !sup.auth) return;
+        
+        const { data: { user } } = await sup.auth.getUser();
         if(!user) return;
 
         // try to read friendly name from OAuth metadata (common fields)
@@ -1405,7 +1427,7 @@ setTimeout(()=>{
         const tables = ['profiles','profile'];
         for(const tbl of tables){
           try{
-            const { error, data } = await supabase.from(tbl).upsert(payload, { onConflict: 'id' }).select();
+            const { error, data } = await sup.from(tbl).upsert(payload, { onConflict: 'id' }).select();
             if(!error){
               console.debug('upsertProfileFromOAuth: upserted into', tbl, data);
               return;
@@ -1428,8 +1450,9 @@ setTimeout(()=>{
     // to the currently active account (prevents anonymous/local data from leaking
     // into a different signed-in account and ensures UI reflects the correct user).
     try{
-      if(supabase && supabase.auth && typeof supabase.auth.onAuthStateChange === 'function'){
-        const { data: authSub } = supabase.auth.onAuthStateChange(async (event, session) => {
+      const sup = (typeof window !== 'undefined' && window.supabase) ? window.supabase : (typeof supabase !== 'undefined' ? supabase : null);
+      if(sup && sup.auth && typeof sup.auth.onAuthStateChange === 'function'){
+        const { data: authSub } = sup.auth.onAuthStateChange(async (event, session) => {
           try{ console.debug('supabase auth state change', event); }catch(_){}
           if(event === 'SIGNED_IN'){
             // A user signed in: reload authoritative progress from server (or per-user local)
