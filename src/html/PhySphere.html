@@ -5,24 +5,40 @@
     <script>
       // AUTHENTICATION GUARD - wait for Supabase client to initialize first
       (async function() {
+        console.log('🔒 Auth Guard: Starting...');
+        
         try{
           await (window.__supabaseReady || Promise.resolve());
-        }catch(e){ console.warn('Supabase init error in auth guard', e); }
+        }catch(e){ 
+          console.error('🔒 Auth Guard: Supabase init error', e); 
+        }
 
         if (!window.supabase) {
-          // If SDK failed to load, let the page continue and surface errors in console.
-          console.warn('Supabase SDK not available in auth guard');
+          console.error('🔒 Auth Guard: Supabase SDK not available - REDIRECTING to login');
+          // If SDK failed to load, redirect to login
+          setTimeout(() => { window.location.href = 'login.html'; }, 100);
           return;
         }
 
         try{
-          const { data: { session } } = await supabase.auth.getSession();
+          const { data: { session }, error } = await supabase.auth.getSession();
+          
+          console.log('🔒 Auth Guard: Session check result:', { 
+            hasSession: !!session, 
+            error: error?.message,
+            user: session?.user?.email 
+          });
+          
           if (!session) {
+            console.warn('🔒 Auth Guard: NO SESSION - REDIRECTING to login');
             // User BELUM login, paksa kembali ke halaman login
             window.location.href = 'login.html';
+          } else {
+            console.log('✅ Auth Guard: User logged in as', session.user.email);
           }
         }catch(e){
-          console.warn('Error checking session in auth guard', e);
+          console.error('🔒 Auth Guard: Error checking session - REDIRECTING to login', e);
+          window.location.href = 'login.html';
         }
       })();
     </script>
@@ -34,6 +50,12 @@
   <link rel="stylesheet" href="/src/css/style.css">
 </head>
 <body class="min-h-screen">
+  <!-- Warning Banner: Not Logged In -->
+  <div id="not-logged-in-warning" class="hidden bg-yellow-500 text-white px-6 py-3 text-center font-semibold">
+    ⚠️ Anda belum login! Progress materi tidak akan tersimpan. 
+    <a href="login.html" class="underline ml-2">Login Sekarang</a>
+  </div>
+  
   <div class="max-w-7xl mx-auto p-6">
     <header class="flex items-center justify-between mb-6">
       <div class="flex items-center gap-4">

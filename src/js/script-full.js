@@ -38,6 +38,7 @@ document.querySelectorAll('.tab-button').forEach(btn=>btn.addEventListener('clic
   if(btn.dataset.page === 'materi'){
     setTimeout(()=>{ 
       try{ 
+        if(typeof window.checkLoginStatus === 'function') window.checkLoginStatus();
         if(typeof window.updateProgressUI === 'function') window.updateProgressUI();
         if(typeof window.refreshButtons === 'function') window.refreshButtons();
       }catch(e){ console.warn('Failed to refresh materi UI', e); } 
@@ -853,6 +854,31 @@ setTimeout(()=>{
   let loaded = false; // Flag agar tidak double-load
   let user_id = null; // ID user yang sedang login
 
+  // --- FUNGSI: Check login status dan tampilkan warning ---
+  async function checkLoginStatus() {
+    const sup = (typeof window !== 'undefined' && window.supabase) ? window.supabase : (typeof supabase !== 'undefined' ? supabase : null);
+    if(!sup || !sup.auth) return false;
+    
+    try{
+      const { data: { user } } = await sup.auth.getUser();
+      const warning = document.getElementById('not-logged-in-warning');
+      
+      if (!user) {
+        console.warn('⚠️ User NOT logged in - progress will NOT be saved to database');
+        if(warning) warning.classList.remove('hidden');
+        return false;
+      } else {
+        console.log('✅ User logged in:', user.email);
+        if(warning) warning.classList.add('hidden');
+        return true;
+      }
+    }catch(e){
+      console.error('Error checking login status:', e);
+      return false;
+    }
+  }
+  window.checkLoginStatus = checkLoginStatus;
+
 // --- FUNGSI BARU: Mengambil progress dari Supabase ---
   async function loadProgressFromSupabase() {
     if (loaded) return; // Mencegah double-load
@@ -1150,8 +1176,16 @@ setTimeout(()=>{
 
       // Try to save to Supabase; if unavailable or save fails, enqueue locally
       let saved = false;
+      
+      // DEBUG: Check Supabase and user status
+      const sup = (typeof window !== 'undefined' && window.supabase) ? window.supabase : (typeof supabase !== 'undefined' ? supabase : null);
+      console.log('🔍 Debug save - supabase client:', sup ? 'Available' : 'NOT AVAILABLE');
+      console.log('🔍 Debug save - user_id:', user_id || 'NOT LOGGED IN');
+      console.log('🔍 Debug save - typeof supabase:', typeof supabase);
+      console.log('🔍 Debug save - window.supabase:', typeof window.supabase);
+      
       if (typeof supabase === 'undefined' || !user_id) {
-        console.warn('Cannot save to Supabase (not logged in or SDK not ready), enqueueing');
+        console.warn('❌ Cannot save to Supabase (not logged in or SDK not ready), enqueueing');
         enqueueProgress(payload);
       } else {
         try{
@@ -1449,6 +1483,9 @@ setTimeout(()=>{
 
     try{ if(typeof upsertProfileFromOAuth === 'function') await upsertProfileFromOAuth(); }catch(e){ console.warn('upsertProfileFromOAuth failed', e); }
 
+    // Check login status and show warning if not logged in
+    try{ if(typeof checkLoginStatus === 'function') await checkLoginStatus(); }catch(e){ console.warn('checkLoginStatus failed', e); }
+
     try{ if(typeof loadProgressFromSupabase === 'function') await loadProgressFromSupabase(); }catch(e){ console.warn('loadProgressFromSupabase failed', e); }
     // Attempt to flush any locally queued progress for this user
     try{ if(typeof flushProgressQueue === 'function') await flushProgressQueue(); }catch(e){ console.warn('flushProgressQueue failed', e); }
@@ -1466,6 +1503,10 @@ setTimeout(()=>{
             // A user signed in: reload authoritative progress from server (or per-user local)
             user_id = session && session.user ? session.user.id : null;
             loaded = false; // force reload
+            
+            // Check login status and hide warning
+            try{ if(typeof checkLoginStatus === 'function') await checkLoginStatus(); }catch(e){ console.warn('auth listener: checkLoginStatus failed', e); }
+            
             try{ if(typeof loadProgressFromSupabase === 'function') await loadProgressFromSupabase(); }catch(e){ console.warn('auth listener: loadProgressFromSupabase failed', e); }
             try{ if(typeof flushProgressQueue === 'function') await flushProgressQueue(); }catch(e){ console.warn('auth listener: flushProgressQueue failed', e); }
             
@@ -1496,6 +1537,10 @@ setTimeout(()=>{
               MODULES.forEach(m => { state[m] = false; });
               // Don't load anonymous progress - keep it clean
             }catch(e){ console.warn('auth listener: failed resetting state', e); }
+            
+            // Show warning banner
+            try{ if(typeof checkLoginStatus === 'function') await checkLoginStatus(); }catch(e){ console.warn('auth listener: checkLoginStatus failed after signout', e); }
+            
             try{ updateProgressUI(); refreshButtons(); }catch(e){}
             try{ if(typeof window.showProfileView === 'function') await window.showProfileView(); }catch(e){ console.warn('auth listener: showProfileView failed after signout', e); }
           }
