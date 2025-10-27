@@ -903,7 +903,10 @@ setTimeout(()=>{
           // Upsert into the detected table (fallback to 'profile')
           const targetTable = (fetched && fetched.table) ? fetched.table : 'profile';
           const { error: upErr, data: upData } = await sup.from(targetTable).upsert({ id: user_id, materi_progress: DEFAULT_MATERI_PROGRESS }, { onConflict: 'id' }).select();
-          if(upErr) throw upErr;
+          if(upErr) {
+            console.error('loadProgressFromSupabase: UPSERT default materi_progress FAILED:', upErr);
+            throw upErr;
+          }
           console.debug('loadProgressFromSupabase: wrote default materi_progress for user', user_id, upData);
           // also update local state to defaults
           state = {};
@@ -952,6 +955,8 @@ setTimeout(()=>{
           if(!updError){
             const updatedRows = Array.isArray(updData) ? updData.length : (updData ? 1 : 0);
             if(updatedRows){ console.debug('saveProgress update ok on', tbl, updData); return true; }
+          } else {
+            console.error('saveProgress UPDATE error on', tbl, ':', updError);
           }
         }catch(e){ console.debug('saveProgress update attempt failed on', tbl, e); }
       }
@@ -960,7 +965,12 @@ setTimeout(()=>{
       for(const tbl of tables){
         try{
           const { error: upError, data: upData } = await sup.from(tbl).upsert({ id: user_id, materi_progress: payload }, { onConflict: 'id' }).select();
-          if(!upError){ console.debug('saveProgress upsert ok on', tbl, upData); return true; }
+          if(!upError){ 
+            console.debug('saveProgress upsert ok on', tbl, upData); 
+            return true; 
+          } else {
+            console.error('saveProgress UPSERT error on', tbl, ':', upError);
+          }
         }catch(e){ console.debug('saveProgress upsert failed on', tbl, e); }
       }
 
