@@ -1369,6 +1369,46 @@ setTimeout(()=>{
     try{ if(typeof flushProgressQueue === 'function') await flushProgressQueue(); }catch(e){ console.warn('flushProgressQueue failed', e); }
     try{ if(typeof showProfileView === 'function') await showProfileView(); }catch(e){ console.warn('showProfileView failed', e); }
 
+    // Subscribe to auth state changes so we can switch the in-memory progress state
+    // to the currently active account (prevents anonymous/local data from leaking
+    // into a different signed-in account and ensures UI reflects the correct user).
+    try{
+      if(supabase && supabase.auth && typeof supabase.auth.onAuthStateChange === 'function'){
+        const { data: authSub } = supabase.auth.onAuthStateChange(async (event, session) => {
+          try{ console.debug('supabase auth state change', event); }catch(_){}
+          if(event === 'SIGNED_IN'){
+            // A user signed in: reload authoritative progress from server (or per-user local)
+            user_id = session && session.user ? session.user.id : null;
+            loaded = false; // force reload
+            try{ if(typeof loadProgressFromSupabase === 'function') await loadProgressFromSupabase(); }catch(e){ console.warn('auth listener: loadProgressFromSupabase failed', e); }
+            try{ if(typeof flushProgressQueue === 'function') await flushProgressQueue(); }catch(e){ console.warn('auth listener: flushProgressQueue failed', e); }
+            try{ if(typeof showProfileView === 'function') await showProfileView(); }catch(e){ console.warn('auth listener: showProfileView failed', e); }
+          } else if(event === 'SIGNED_OUT'){
+            // User signed out: clear user_id and switch to anonymous local progress
+            user_id = null;
+            loaded = false;
+            try{
+              // reset state to false for all modules, then load ':anon' local progress if present
+              state = {};
+              MODULES.forEach(m => { state[m] = false; });
+              const anonKey = localProgressKey(null);
+              const anonRaw = localStorage.getItem(anonKey);
+              if(anonRaw){
+                const anonObj = JSON.parse(anonRaw);
+                if(anonObj && typeof anonObj === 'object'){
+                  MODULES.forEach(m => { state[m] = !!anonObj[m]; });
+                }
+              }
+            }catch(e){ console.warn('auth listener: failed loading anon progress', e); }
+            try{ updateProgressUI(); refreshButtons(); }catch(e){}
+            try{ if(typeof showProfileView === 'function') await showProfileView(); }catch(e){ console.warn('auth listener: showProfileView failed after signout', e); }
+          }
+        });
+        // store subscription so other code can unsubscribe if needed
+        window.__supabaseAuthSub = authSub;
+      }
+    }catch(e){ console.warn('failed to attach auth state listener', e); }
+
     // re-attach DOMContentLoaded fallback in case consumers expect it
     try{ window.dispatchEvent(new Event('supabase-ready')); }catch(e){}
   })();
