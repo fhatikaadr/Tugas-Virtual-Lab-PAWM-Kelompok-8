@@ -8,28 +8,49 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="/src/css/style.css">
 </head>
-<body class="min-h-screen flex items-center justify-center bg-gradient-to-b from-purple-50 to-yellow-50">
-  <div class="max-w-md w-full p-6">
-    <div class="card">
-      <h2 class="text-xl font-bold text-purple-800 mb-3">Daftar Akun PhySphere</h2>
+<body class="auth-body flex items-center justify-center">
 
-      <label class="block text-sm text-slate-600">Nama</label>
-      <input id="reg-name" type="text" class="mt-2 px-3 py-2 border rounded w-full" placeholder="Nama lengkap">
+  <!-- Physics particles -->
+  <div class="physics-particle" style="--tx:80px;--ty:-40px;width:90px;height:90px;top:15%;left:20%;animation-delay:0s;"></div>
+  <div class="physics-particle" style="--tx:-70px;--ty:90px;width:100px;height:100px;top:45%;left:75%;animation-delay:3s;"></div>
+  <div class="physics-particle" style="--tx:100px;--ty:-60px;width:70px;height:70px;top:70%;left:40%;animation-delay:6s;"></div>
 
-      <label class="block text-sm text-slate-600 mt-3">Email</label>
-      <input id="reg-email" type="email" class="mt-2 px-3 py-2 border rounded w-full" placeholder="you@example.com">
+  <!-- Wave -->
+  <div class="physics-wave"></div>
 
-      <label class="block text-sm text-slate-600 mt-3">Password</label>
-      <input id="reg-password" type="password" class="mt-2 px-3 py-2 border rounded w-full" placeholder="••••••">
+  <!-- Register Card -->
+  <div class="auth-card text-center">
+    <div class="physics-logo">
+      <div class="physics-nucleus"></div>
+      <div class="physics-orbit"><div class="physics-electron"></div></div>
+      <div class="physics-orbit"><div class="physics-electron"></div></div>
+      <div class="physics-orbit"><div class="physics-electron"></div></div>
+    </div>
 
-      <div class="mt-4 flex gap-2">
-        <button id="reg-submit" class="vlab-button bg-green-600 text-white">Daftar</button>
-        <a href="/" class="vlab-button bg-white border">Kembali</a>
-      </div>
+    <h2 class="text-xl font-bold text-purple-800 mb-4">Daftar Akun PhySphere</h2>
 
-      <div id="reg-msg" class="text-sm text-red-500 mt-3"></div>
-      <hr class="my-4">
-  <div class="text-sm text-slate-600">Sudah punya akun? <a href="/login" class="text-blue-600 font-semibold">Masuk</a></div>
+    <div class="text-left">
+      <label class="auth-label">Nama</label>
+      <input id="reg-name" type="text" class="auth-input" placeholder="Nama lengkap">
+
+      <label class="auth-label mt-4">Email</label>
+      <input id="reg-email" type="email" class="auth-input" placeholder="you@example.com">
+
+      <label class="auth-label mt-4">Password</label>
+      <input id="reg-password" type="password" class="auth-input" placeholder="••••••">
+    </div>
+
+    <div class="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
+      <button id="reg-submit" class="auth-btn auth-btn-primary w-full sm:w-auto">Daftar</button>
+      <a href="/" class="auth-btn auth-btn-secondary w-full sm:w-auto">Kembali</a>
+    </div>
+
+    <div id="reg-msg" class="auth-msg text-red-500 mt-3"></div>
+
+    <hr class="my-4">
+    <div class="text-sm text-slate-600">
+      Sudah punya akun?
+      <a href="/login" class="auth-link">Masuk</a>
     </div>
   </div>
 
@@ -37,90 +58,51 @@
     (function(){
       function el(id){return document.getElementById(id)}
 
-      // Cek apakah sudah login dengan Supabase (tunggu inisialisasi client dulu)
       (async function() {
-        try {
-          await (window.__supabaseReady || Promise.resolve());
-        } catch(e) {
-          console.error('Supabase init error', e);
-        }
+        try { await (window.__supabaseReady || Promise.resolve()); }
+        catch(e) { console.error('Supabase init error', e); }
         if (!window.supabase) return;
         const { data: { session } } = await supabase.auth.getSession();
-        if (session) {
-          // User sudah login, lempar ke halaman utama
-          window.location.href = '/PhySphere';
-        }
+        if (session) window.location.href = '/PhySphere';
       })();
 
-      // Ganti logika 'click' dengan Supabase
       el('reg-submit').addEventListener('click', async function(){
         const name = (el('reg-name').value||'').trim();
         const email = (el('reg-email').value||'').trim().toLowerCase();
         const pass = el('reg-password').value||'';
         const msg = el('reg-msg'); msg.textContent = '';
-        
         if(!email || !pass){ msg.textContent = 'Email dan password wajib diisi.'; return; }
-        // ensure Supabase SDK is initialized before using auth
-        try{ await (window.__supabaseReady || Promise.resolve()); }catch(e){ console.error('Supabase init error (register)', e); }
-        if (!window.supabase) { msg.textContent = 'SDK Supabase gagal dimuat. Cek console untuk detail.'; return; }
 
-        // LOGIKA SUPABASE BARU
+        try{ await (window.__supabaseReady || Promise.resolve()); }
+        catch(e){ console.error('Supabase init error (register)', e); }
+        if (!window.supabase) { msg.textContent = 'SDK Supabase gagal dimuat.'; return; }
+
         msg.textContent = 'Mendaftarkan...';
         const { data, error } = await supabase.auth.signUp({
-          email: email,
-          password: pass,
-          options: {
-            data: {
-              // Data ini akan ditangkap oleh Trigger yang kita buat di Tahap 1
-              full_name: name 
-            }
-          }
+          email, password: pass,
+          options: { data: { full_name: name } }
         });
 
-        if (error) {
-          msg.textContent = 'Error: ' + error.message;
+        if (error){ msg.textContent = 'Error: ' + error.message; return; }
+
+        const newUser = data?.user || (data?.session && data.session.user);
+        if (!newUser){
+          msg.textContent = 'Registrasi berhasil. Cek email untuk konfirmasi.';
           return;
         }
 
-        // Jika ada error server-side, tampilkan
-        msg.textContent = '';
-
-        // Supabase may require email confirmation. If a user object is
-        // returned immediately we can create a profile row client-side.
-        const newUser = data?.user || (data?.session && data.session.user) || null;
-        if (!newUser) {
-          // No immediate user (likely requires email confirmation)
-          msg.textContent = 'Registrasi berhasil. Silakan cek email untuk konfirmasi sebelum masuk.';
-          return;
-        }
-
-        // Buat/memperbarui profile client-side (safe upsert). This avoids
-        // needing a DB trigger and works when RLS allows authenticated inserts.
         try {
           const up = await supabase.from('profile').upsert({
             id: newUser.id,
             full_name: name,
-            email: email,
-            // Start with default materi_progress where all modules are false
+            email,
             materi_progress: { "ghs": false, "pegas": false, "bandul": false, "getaran": false },
             updated_at: new Date().toISOString()
           }, { onConflict: 'id' });
-          if (up.error) {
-            console.error('Profile upsert error', up.error);
-            msg.textContent = 'Error: ' + (up.error.message || 'Database error saving new user');
-            // Still allow redirect (user account created) but warn in UI
-            setTimeout(()=>{ try{ window.location.href = '/PhySphere'; }catch(e){} }, 1600);
-            return;
-          }
-        } catch(e) {
-          console.error('Profile upsert exception', e);
-          msg.textContent = 'Error: ' + (e.message || String(e));
-          setTimeout(()=>{ try{ window.location.href = '/PhySphere'; }catch(e){} }, 1600);
-          return;
-        }
+          if (up.error) console.error('Profile upsert error', up.error);
+        } catch(e){ console.error(e); }
 
         msg.textContent = 'Registrasi berhasil! Mengarahkan...';
-        // Redirect to main (use absolute route so rewrites work)
         try{ sessionStorage.setItem('pysphere_active_page','beranda'); }catch(e){}
         window.location.href = '/PhySphere';
       });

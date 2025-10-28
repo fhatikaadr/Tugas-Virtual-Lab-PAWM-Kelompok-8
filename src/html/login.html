@@ -1,90 +1,75 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <script src="/src/js/supabase-client.js"></script>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>PhySphere — Login</title>
+  <title>PhySphere — Masuk</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="/src/css/style.css">
+  <script src="/src/js/supabase-client.js"></script>
 </head>
-<body class="min-h-screen flex items-center justify-center bg-gradient-to-b from-purple-50 to-yellow-50">
-  <div class="max-w-md w-full p-6">
-    <div class="card">
-      <h2 class="text-xl font-bold text-purple-800 mb-3">Masuk ke PhySphere</h2>
+<body class="auth-body flex items-center justify-center">
 
-      <label class="block text-sm text-slate-600">Email</label>
-      <input id="login-email" type="email" class="mt-2 px-3 py-2 border rounded w-full" placeholder="you@example.com">
+  <!-- Animated physics particles -->
+  <div class="physics-particle" style="--tx:60px;--ty:-40px;width:80px;height:80px;top:15%;left:20%;animation-delay:0s;"></div>
+  <div class="physics-particle" style="--tx:-80px;--ty:90px;width:100px;height:100px;top:40%;left:70%;animation-delay:3s;"></div>
+  <div class="physics-particle" style="--tx:100px;--ty:-60px;width:60px;height:60px;top:70%;left:40%;animation-delay:6s;"></div>
 
-      <label class="block text-sm text-slate-600 mt-3">Password</label>
-      <input id="login-password" type="password" class="mt-2 px-3 py-2 border rounded w-full" placeholder="••••••">
+  <!-- Wave at bottom -->
+  <div class="physics-wave"></div>
 
-      <div class="mt-4 flex gap-2">
-        <button id="login-submit" class="vlab-button bg-blue-600 text-white">Masuk</button>
-  <a href="/" class="vlab-button bg-white border">Kembali</a>
-      </div>
-
-  <div id="login-msg" class="text-sm text-red-500 mt-3"></div>
-  <hr class="my-4">
-  <div class="text-sm text-slate-600">Belum punya akun? <a href="/register" class="text-blue-600 font-semibold">Daftar</a></div>
+  <!-- Auth Card -->
+  <div class="auth-card text-center">
+    <div class="physics-logo">
+      <div class="physics-nucleus"></div>
+      <div class="physics-orbit"><div class="physics-electron"></div></div>
+      <div class="physics-orbit"><div class="physics-electron"></div></div>
+      <div class="physics-orbit"><div class="physics-electron"></div></div>
     </div>
+    <h1 class="text-2xl font-bold text-purple-800 mb-4">Selamat datang di PhySphere</h1>
+    <p class="text-slate-600 mb-6">Masuk untuk melanjutkan ke simulasi dan kuis interaktif.</p>
+
+    <div class="flex flex-col sm:flex-row gap-4 justify-center">
+      <a href="/login" class="auth-btn auth-btn-primary">Login</a>
+      <a href="/register" class="auth-btn auth-btn-secondary">Register</a>
+    </div>
+
+    <!-- Google OAuth button -->
+    <div class="mt-6 flex justify-center">
+      <button id="login-google" class="auth-btn auth-btn-secondary inline-flex items-center gap-2 justify-center whitespace-nowrap">
+        <img src="/src/img/google-logo.png" alt="Google" style="height:20px;width:20px;object-fit:contain;" onerror="this.style.display='none'">
+        <span>Login dengan Google</span>
+      </button>
+    </div>
+
+    <div class="mt-6 text-sm text-slate-500">Jika sudah login, Anda akan diarahkan otomatis ke halaman utama.</div>
   </div>
 
+  <!-- Script: Google Login -->
   <script>
     (function(){
-      function el(id){return document.getElementById(id)}
-      
-      // Cek apakah sudah login dengan Supabase (tunggu inisialisasi client dulu)
-      (async function() {
-        try {
+      const btn = document.getElementById('login-google');
+      if(!btn) return;
+      btn.addEventListener('click', async function(){
+        try{
           await (window.__supabaseReady || Promise.resolve());
-        } catch(e) {
-          console.error('Supabase init error', e);
+        }catch(e){ console.warn('Supabase init error', e); }
+
+        if(!window.supabase || !window.supabase.auth || typeof window.supabase.auth.signInWithOAuth !== 'function'){
+          alert('Layanan autentikasi belum tersedia saat ini. Coba lagi nanti.');
+          return;
         }
-        if (!window.supabase) return;
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session) {
-          // User sudah login, lempar ke halaman utama
-          window.location.href = '/PhySphere';
+
+        const redirectTo = window.location.origin + '/src/html/PhySphere.html';
+        try{
+          await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo } });
+        }catch(err){
+          console.error('Google signin error', err);
+          alert('Gagal memulai proses login Google. Cek konsol untuk detail.');
         }
-      })();
-
-      // Ganti logika 'click' dengan Supabase
-      el('login-submit').addEventListener('click', async function(){
-        const email = (el('login-email').value||'').trim().toLowerCase();
-        const pass = (el('login-password').value||'');
-        const msg = el('login-msg'); msg.textContent = '';
-        
-        if(!email || !pass){ msg.textContent = 'Email dan password wajib diisi.'; return; }
-
-          // ensure Supabase SDK is initialized before calling auth
-          try{
-            await (window.__supabaseReady || Promise.resolve());
-          }catch(e){ console.error('Supabase init error (login):', e); }
-          if (!window.supabase) {
-            msg.textContent = 'SDK Supabase gagal dimuat. Cek koneksi atau console (see window.__supabaseInitError).';
-            console.warn('Supabase init error detail:', window.__supabaseInitError);
-            return;
-          }
-
-          // LOGIKA SUPABASE BARU
-          msg.textContent = 'Masuk...';
-          const { data, error } = await supabase.auth.signInWithPassword({
-            email: email,
-            password: pass,
-          });
-
-          if (error) {
-            msg.textContent = 'Email atau password salah.';
-            console.error('Login error', error);
-            return;
-          }
-
-          // Login berhasil, Supabase menyimpan session di localStorage-nya sendiri
-          try{ sessionStorage.setItem('pysphere_active_page','beranda'); }catch(e){}
-          window.location.href = '/PhySphere';
       });
     })();
   </script>
+
 </body>
 </html>
