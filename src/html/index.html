@@ -71,5 +71,39 @@
     })();
   </script>
 
+    <!-- Compatibility: try multiple candidate paths for login/register to avoid 404 on different hosts -->
+    <script>
+      (function(){
+        function tryPaths(paths){
+          return paths.reduce((p, path) => {
+            return p.then(found => {
+              if(found) return found;
+              // Use HEAD first to avoid downloading large files
+              return fetch(path, { method: 'HEAD' }).then(resp => {
+                if(resp && resp.ok) return path;
+                return null;
+              }).catch(() => null);
+            });
+          }, Promise.resolve(null));
+        }
+
+        function attachCandidateLink(selector, candidates){
+          const el = document.querySelector(selector);
+          if(!el) return;
+          el.addEventListener('click', function(ev){
+            ev.preventDefault();
+            tryPaths(candidates).then(path => {
+              if(path) window.location.href = path;
+              else window.location.href = el.getAttribute('href');
+            });
+          });
+        }
+
+        // Try common locations where the files may be hosted
+        attachCandidateLink('a[href="login.html"]', ['login.html','/login.html','src/html/login.html','/src/html/login.html','/login']);
+        attachCandidateLink('a[href="register.html"]', ['register.html','/register.html','src/html/register.html','/src/html/register.html','/register']);
+      })();
+    </script>
+
 </body>
 </html>
