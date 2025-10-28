@@ -18,54 +18,60 @@
   <!-- Wave at bottom -->
   <div class="physics-wave"></div>
 
-  <!-- Auth Card -->
-  <div class="auth-card text-center">
+  <!-- Auth Card (Login form only) -->
+  <div class="auth-card text-center max-w-md w-full">
     <div class="physics-logo">
       <div class="physics-nucleus"></div>
       <div class="physics-orbit"><div class="physics-electron"></div></div>
       <div class="physics-orbit"><div class="physics-electron"></div></div>
       <div class="physics-orbit"><div class="physics-electron"></div></div>
     </div>
-    <h1 class="text-2xl font-bold text-purple-800 mb-4">Selamat datang di PhySphere</h1>
-    <p class="text-slate-600 mb-6">Masuk untuk melanjutkan ke simulasi dan kuis interaktif.</p>
+    <h1 class="text-2xl font-bold text-purple-800 mb-4">Masuk ke PhySphere</h1>
+    <p class="text-slate-600 mb-6">Masukkan email dan password Anda.</p>
 
-    <div class="flex flex-col sm:flex-row gap-4 justify-center">
-      <a href="/login" class="auth-btn auth-btn-primary">Login</a>
-      <a href="/register" class="auth-btn auth-btn-secondary">Register</a>
+    <div class="text-left">
+      <label class="auth-label">Email</label>
+      <input id="login-email" type="email" class="auth-input w-full" placeholder="you@example.com">
+
+      <label class="auth-label mt-4">Password</label>
+      <input id="login-password" type="password" class="auth-input w-full" placeholder="••••••">
     </div>
 
-    <!-- Google OAuth button -->
-    <div class="mt-6 flex justify-center">
-      <button id="login-google" class="auth-btn auth-btn-secondary inline-flex items-center gap-2 justify-center whitespace-nowrap">
-        <img src="/src/img/google-logo.png" alt="Google" style="height:20px;width:20px;object-fit:contain;" onerror="this.style.display='none'">
-        <span>Login dengan Google</span>
-      </button>
+    <div class="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
+      <button id="login-submit" class="auth-btn auth-btn-primary w-full sm:w-auto">Masuk</button>
+      <a href="index.html" class="auth-btn auth-btn-secondary w-full sm:w-auto">Kembali</a>
     </div>
 
-    <div class="mt-6 text-sm text-slate-500">Jika sudah login, Anda akan diarahkan otomatis ke halaman utama.</div>
+    <div id="login-msg" class="auth-msg text-red-500 mt-3"></div>
+
+    <hr class="my-4">
+    <div class="text-sm text-slate-600">
+      Belum punya akun? <a href="register.html" class="auth-link">Daftar</a>
+    </div>
   </div>
 
-  <!-- Script: Google Login -->
   <script>
     (function(){
-      const btn = document.getElementById('login-google');
-      if(!btn) return;
-      btn.addEventListener('click', async function(){
-        try{
-          await (window.__supabaseReady || Promise.resolve());
-        }catch(e){ console.warn('Supabase init error', e); }
+      function el(id){return document.getElementById(id)}
 
-        if(!window.supabase || !window.supabase.auth || typeof window.supabase.auth.signInWithOAuth !== 'function'){
-          alert('Layanan autentikasi belum tersedia saat ini. Coba lagi nanti.');
-          return;
-        }
+      el('login-submit').addEventListener('click', async function(){
+        const email = (el('login-email').value||'').trim().toLowerCase();
+        const password = el('login-password').value||'';
+        const msg = el('login-msg'); msg.textContent = '';
+        if(!email || !password){ msg.textContent = 'Email dan password wajib diisi.'; return; }
 
-        const redirectTo = window.location.origin + '/src/html/PhySphere.html';
+        try{ await (window.__supabaseReady || Promise.resolve()); }catch(e){ console.error('Supabase init error', e); }
+        if(!window.supabase){ msg.textContent = 'SDK Supabase gagal dimuat.'; return; }
+
+        msg.textContent = 'Memproses...';
         try{
-          await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo } });
+          const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+          if(error){ msg.textContent = error.message || 'Gagal masuk'; return; }
+          // success: redirect to PhySphere
+          window.location.href = 'PhySphere.html';
         }catch(err){
-          console.error('Google signin error', err);
-          alert('Gagal memulai proses login Google. Cek konsol untuk detail.');
+          console.error('Login error', err);
+          msg.textContent = 'Terjadi kesalahan saat login.';
         }
       });
     })();
