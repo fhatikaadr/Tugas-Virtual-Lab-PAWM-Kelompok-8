@@ -31,13 +31,13 @@
 
     <div class="text-left">
       <label class="auth-label">Nama</label>
-      <input id="reg-name" type="text" class="auth-input w-full" placeholder="Nama lengkap">
+  <input id="reg-name" type="text" class="auth-input w-full px-3 py-2 border border-slate-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-purple-300" placeholder="Nama lengkap">
 
       <label class="auth-label mt-4">Email</label>
-      <input id="reg-email" type="email" class="auth-input w-full" placeholder="you@example.com">
+  <input id="reg-email" type="email" class="auth-input w-full px-3 py-2 border border-slate-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-purple-300" placeholder="you@example.com">
 
       <label class="auth-label mt-4">Password</label>
-      <input id="reg-password" type="password" class="auth-input w-full" placeholder="••••••">
+  <input id="reg-password" type="password" class="auth-input w-full px-3 py-2 border border-slate-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-purple-300" placeholder="••••••">
     </div>
 
     <div class="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
@@ -84,26 +84,29 @@
 
         if (error){ msg.textContent = 'Error: ' + error.message; return; }
 
+        // Registration succeeded — do NOT automatically log the user in.
+        // If Supabase created a session automatically, sign it out to force explicit login.
         const newUser = data?.user || (data?.session && data.session.user);
-        if (!newUser){
-          msg.textContent = 'Registrasi berhasil. Cek email untuk konfirmasi.';
-          return;
-        }
+        try{
+          // attempt to sign out so the user stays logged out until they verify/login
+          await supabase.auth.signOut();
+        }catch(e){ /* ignore signOut errors */ }
 
         try {
-          const up = await supabase.from('profile').upsert({
-            id: newUser.id,
-            full_name: name,
-            email,
-            materi_progress: { "ghs": false, "pegas": false, "bandul": false, "getaran": false },
-            updated_at: new Date().toISOString()
-          }, { onConflict: 'id' });
-          if (up.error) console.error('Profile upsert error', up.error);
+          if (newUser) {
+            // create an empty profile row for the user (optional)
+            const up = await supabase.from('profile').upsert({
+              id: newUser.id,
+              full_name: name,
+              email,
+              materi_progress: { "ghs": false, "pegas": false, "bandul": false, "getaran": false },
+              updated_at: new Date().toISOString()
+            }, { onConflict: 'id' });
+            if (up.error) console.error('Profile upsert error', up.error);
+          }
         } catch(e){ console.error(e); }
 
-        msg.textContent = 'Registrasi berhasil! Mengarahkan...';
-        try{ sessionStorage.setItem('pysphere_active_page','beranda'); }catch(e){}
-        window.location.href = '/PhySphere';
+        msg.textContent = 'Registrasi berhasil! Cek email untuk verifikasi. Silakan masuk setelah verifikasi.';
       });
     })();
   </script>

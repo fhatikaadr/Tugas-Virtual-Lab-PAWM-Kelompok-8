@@ -30,11 +30,11 @@
     <p class="text-slate-600 mb-6">Masukkan email dan password Anda.</p>
 
     <div class="text-left">
-      <label class="auth-label">Email</label>
-      <input id="login-email" type="email" class="auth-input w-full" placeholder="you@example.com">
+  <label class="auth-label">Email</label>
+  <input id="login-email" type="email" class="auth-input w-full px-3 py-2 border border-slate-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-purple-300" placeholder="you@example.com">
 
-      <label class="auth-label mt-4">Password</label>
-      <input id="login-password" type="password" class="auth-input w-full" placeholder="••••••">
+  <label class="auth-label mt-4">Password</label>
+  <input id="login-password" type="password" class="auth-input w-full px-3 py-2 border border-slate-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-purple-300" placeholder="••••••">
     </div>
 
     <div class="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
@@ -63,7 +63,7 @@
         try{ await (window.__supabaseReady || Promise.resolve()); }catch(e){ console.error('Supabase init error', e); }
         if(!window.supabase){ msg.textContent = 'SDK Supabase gagal dimuat.'; return; }
 
-        msg.textContent = 'Memproses...';
+  msg.textContent = 'Memproses...';
         try{
           const { data, error } = await supabase.auth.signInWithPassword({ email, password });
           if(error){ msg.textContent = error.message || 'Gagal masuk'; return; }
