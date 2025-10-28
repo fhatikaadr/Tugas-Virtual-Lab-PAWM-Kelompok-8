@@ -10,15 +10,12 @@
 </head>
 <body class="auth-body flex items-center justify-center">
 
-  <!-- Animated physics particles -->
   <div class="physics-particle" style="--tx:60px;--ty:-40px;width:80px;height:80px;top:15%;left:20%;animation-delay:0s;"></div>
   <div class="physics-particle" style="--tx:-80px;--ty:90px;width:100px;height:100px;top:40%;left:70%;animation-delay:3s;"></div>
   <div class="physics-particle" style="--tx:100px;--ty:-60px;width:60px;height:60px;top:70%;left:40%;animation-delay:6s;"></div>
 
-  <!-- Wave at bottom -->
   <div class="physics-wave"></div>
 
-  <!-- Auth Card -->
   <div class="auth-card text-center">
     <div class="physics-logo">
       <div class="physics-nucleus"></div>
@@ -34,7 +31,6 @@
       <a href="register.html" class="auth-btn auth-btn-secondary">Register</a>
     </div>
 
-    <!-- Google OAuth button -->
     <div class="mt-6 flex justify-center">
       <button id="login-google" class="auth-btn auth-btn-secondary inline-flex items-center gap-2 justify-center whitespace-nowrap">
         <img src="/src/img/google-logo.png" alt="Google" style="height:20px;width:20px;object-fit:contain;" onerror="this.style.display='none'">
@@ -45,7 +41,6 @@
     <div class="mt-6 text-sm text-slate-500">Jika sudah login, Anda akan diarahkan otomatis ke halaman utama.</div>
   </div>
 
-  <!-- Script: Google Login -->
   <script>
     (function(){
       const btn = document.getElementById('login-google');
@@ -71,7 +66,6 @@
     })();
   </script>
 
-    <!-- Compatibility: try multiple candidate paths for login/register to avoid 404 on different hosts -->
     <script>
       (function(){
         function tryPaths(paths){
@@ -99,7 +93,6 @@
           });
         }
 
-        // Try common locations where the files may be hosted
         attachCandidateLink('a[href="login.html"]', ['login.html','/login.html','src/html/login.html','/src/html/login.html','/login']);
         attachCandidateLink('a[href="register.html"]', ['register.html','/register.html','src/html/register.html','/src/html/register.html','/register']);
       })();

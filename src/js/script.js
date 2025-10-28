@@ -1,8 +1,5 @@
-// Minimal restored script: provides basic UI behavior and stubs to replace the corrupted large script.
-// Purpose: restore core interactions so the page is usable. This is a safe, conservative replacement.
 
 (function(){
-  // Show page helper: pages have ids like 'materi-page'
   function showPage(pageId){
     document.querySelectorAll('.page').forEach(p=>p.classList.add('hidden'));
     const el = document.getElementById(pageId);
@@ -15,7 +12,6 @@
     });
   }
 
-  // Restore initial active page from sessionStorage or default to materi
   document.addEventListener('DOMContentLoaded', function(){
     var active = null;
     try{ active = sessionStorage.getItem('pysphere_active_page'); }catch(e){}
@@ -23,12 +19,10 @@
     showPage(active + '-page');
     activateTab(active);
 
-    // attach mark-read handlers
     document.querySelectorAll('.mark-read').forEach(btn => {
       btn.addEventListener('click', function(){
         const mod = btn.dataset.module;
         if(!mod) return;
-        // toggle marked state
         const marked = btn.dataset.marked === '1';
         btn.dataset.marked = marked ? '0' : '1';
         btn.textContent = marked ? 'Tandai Dibaca' : 'Sudah Dibaca';
@@ -36,14 +30,10 @@
       });
     });
 
-  // NOTE: modal handlers are provided by the full script to avoid duplicate/conflicting listeners.
-  // (If script-full.js is not loaded we'll still allow manual hide via overlay click.)
 
-  // attach simple quiz button handlers for start and retry (submit & review removed)
   document.querySelectorAll('.start-topic').forEach(b=> b.addEventListener('click', startTopicHandler));
   document.querySelectorAll('.retry-topic').forEach(b=> b.addEventListener('click', retryTopicHandler));
 
-    // vlab simple controls
     const modePegas = document.getElementById('mode-pegas');
     const modeBandul = document.getElementById('mode-bandul');
     if(modePegas) modePegas.addEventListener('click', ()=> setVlabMode('Pegas'));
@@ -54,17 +44,14 @@
     if(startBtn) startBtn.addEventListener('click', ()=> startVlab());
     if(resetBtn) resetBtn.addEventListener('click', ()=> resetVlab());
 
-    // ensure page buttons persist active page
     document.querySelectorAll('.tab-button').forEach(btn=> btn.addEventListener('click', function(){
       const page = btn.dataset.page || 'materi';
       try{ sessionStorage.setItem('pysphere_active_page', page); }catch(e){}
     }));
 
-    // compute initial progress
     updateMateriProgress();
   });
 
-  // Update material progress bar based on .mark-read buttons
   function updateMateriProgress(){
     const marks = Array.from(document.querySelectorAll('.mark-read'));
     if(marks.length === 0) return;
@@ -76,7 +63,6 @@
     if(pctEl) pctEl.textContent = pct + '%';
   }
 
-  // Simple vlab stubs: display some computed values and expose vlabRefresh
   let vlabState = {mode:'Pegas', running:false, t:0, iv:null};
   function setVlabMode(m){ vlabState.mode = m; const label = document.getElementById('vlab-mode-label'); const display = document.getElementById('vlab-mode-display'); if(label) label.textContent = m; if(display) display.textContent = m; }
   function startVlab(){ if(vlabState.running) return; vlabState.running = true; vlabState.iv = setInterval(()=>{
@@ -101,9 +87,7 @@
   }
   window.vlabRefresh = function(opts){ if(opts && opts.autoplay) startVlab(); else updateVlabDisplay(); };
 
-  // Quiz button handlers (lightweight)
   function startTopicHandler(e){ const topic = e.currentTarget.dataset.topic; if(!topic) return; document.querySelector('.tab-button[data-page="quiz"]')?.click(); setTimeout(()=>{ const el = document.getElementById('quiz-' + topic); if(el) el.scrollIntoView({behavior:'smooth'}); },80); }
-  // submit and review handlers removed; full logic lives in script-full.js
   function retryTopicHandler(e){ const topic = e.currentTarget.dataset.topic; if(!topic) return; const container = document.getElementById('question-container-' + topic); if(container) container.innerHTML = '<div class="p-3 text-sm text-slate-600">Mengulang topik — soal akan disediakan di versi lengkap.</div>'; }
 
 })();

@@ -3,7 +3,6 @@
 <head>
   <script src="/src/js/supabase-client.js"></script>
     <script>
-      // AUTHENTICATION GUARD - wait for Supabase client to initialize first
       (async function() {
         console.log('🔒 Auth Guard: Starting...');
         
@@ -15,7 +14,6 @@
 
         if (!window.supabase) {
           console.error('🔒 Auth Guard: Supabase SDK not available - REDIRECTING to login');
-          // If SDK failed to load, redirect to login
           setTimeout(() => { window.location.href = 'login.html'; }, 100);
           return;
         }
@@ -31,7 +29,6 @@
           
           if (!session) {
             console.warn('🔒 Auth Guard: NO SESSION - REDIRECTING to login');
-            // User BELUM login, paksa kembali ke halaman login
             window.location.href = 'login.html';
           } else {
             console.log('✅ Auth Guard: User logged in as', session.user.email);
@@ -50,14 +47,12 @@
   <link rel="stylesheet" href="/src/css/style.css">
 </head>
 <body class="physphere-body text-slate-800 min-h-screen">
-  <!-- Warning Banner: Not Logged In -->
   <div id="not-logged-in-warning" class="hidden bg-yellow-500 text-white px-6 py-3 text-center font-semibold">
     ⚠️ Anda belum login! Progress materi tidak akan tersimpan. 
     <a href="login.html" class="underline ml-2">Login Sekarang</a>
   </div>
   
   <div class="max-w-7xl mx-auto p-6">
-    <!-- Glass-style navbar (visual only, preserves JS hooks via .tab-button/data-page) -->
     <nav class="glass-navbar flex items-center justify-between mb-6 p-4 rounded-xl shadow-lg bg-white/10 backdrop-blur-md">
       <div class="flex items-center gap-4">
         <img src="/src/img/logo%20PhySphere.png" alt="PhySphere Logo" class="h-14 w-auto object-contain">
@@ -77,7 +72,6 @@
     </nav>
 
     <main>
-      <!-- BERANDA (updated hero + feature cards) -->
   <section id="beranda-page" class="page card mb-6">
   <div class="rounded-2xl overflow-hidden text-white p-8 shadow-lg" style="background: radial-gradient(circle at 10% 20%, rgba(124,58,237,0.95) 0%, rgba(124,58,237,0.85) 35%, rgba(245,158,11,0.85) 100%);">
           <div class="md:flex md:items-center md:gap-8">
@@ -126,10 +120,8 @@
           </div>
         </div>
       </section>
-      <!-- MATERI (modul + sidebar progress) -->
   <section id="materi-page" class="page card mb-6 hidden">
         <div class="grid md:grid-cols-4 gap-6">
-          <!-- Sidebar: daftar modul + progress -->
           <aside class="md:col-span-1">
             <h3 class="text-lg font-semibold text-slate-800 mb-3">Daftar Materi</h3>
             <ul id="materi-list" class="space-y-2 mb-6">
@@ -148,11 +140,9 @@
             </div>
           </aside>
 
-          <!-- Konten modul -->
           <div class="md:col-span-3 space-y-6">
             <h2 class="text-2xl font-bold text-slate-800">Materi Pembelajaran</h2>
 
-            <!-- Modul: Getaran & Gelombang -->
             <article id="getaran" class="p-6 bg-white rounded-xl border">
               <div class="flex justify-between items-start">
                 <div>
@@ -168,7 +158,6 @@
                   <iframe src="https://www.youtube.com/embed/wglGwxYFPpM?list=PLovW1TU0Q47w2mlnQ5yitzleSq_9Dh75O" title="Video Getaran Gelombang" style="position:absolute;inset:0;width:100%;height:100%;border:0;" allowfullscreen></iframe>
                 </div>
               </div>
-              <!-- Concise content: pengertian, contoh, besaran, rumus singkat, gelombang -->
               <div class="mt-6 prose text-slate-700">
                 <h4>Pengertian Getaran</h4>
                 <p>Getaran adalah gerak bolak-balik suatu benda melewati titik setimbang. Satu periode adalah waktu untuk satu getaran penuh (kembali ke posisi semula).</p>
@@ -213,7 +202,6 @@
               </div>
             </article>
 
-            <!-- Modul: GHS -->
             <article id="ghs" class="p-6 bg-white rounded-xl border">
               <div class="flex justify-between items-start">
                 <div>
@@ -229,7 +217,6 @@
                   <iframe src="https://www.youtube.com/embed/q2Hnk39kIe4" title="Video GHS" style="position:absolute;inset:0;width:100%;height:100%;border:0;" allowfullscreen></iframe>
                 </div>
               </div>
-              <!-- GHS detailed section (formatted) -->
               <div class="mt-6 prose text-slate-700">
                 <header class="mb-3">
                   <h3 class="text-xl font-bold">Gerak Harmonik Sederhana: Pengertian, Analisis, dan Contoh</h3>
@@ -238,15 +225,12 @@
 
                 <script>
                   (function(){
-                    // Ensure the Supabase client is initialized before using auth APIs.
                     (async function() {
                       try {
                         await (window.__supabaseReady || Promise.resolve());
                       } catch(e) {
                         console.error('Supabase init error', e);
                       }
-                      // If supabase failed to initialize we silently continue;
-                      // this script only guards against using auth APIs too early.
                     })();
                   })();
                 </script>
@@ -272,7 +256,6 @@
               </div>
             </article>
 
-            <!-- Modul: Bandul -->
             <article id="bandul" class="p-6 bg-white rounded-xl border">
               <div class="flex justify-between items-start">
                 <div>
@@ -288,7 +271,6 @@
                   <iframe src="https://www.youtube.com/embed/jnDb4JWf9ps" title="Video Bandul" style="position:absolute;inset:0;width:100%;height:100%;border:0;" allowfullscreen></iframe>
                 </div>
               </div>
-              <!-- Bandul: concise, well-formatted explanation -->
               <div class="mt-6 prose text-slate-700">
                 <h4>Bandul — Definisi Singkat</h4>
                 <p>Bandul adalah beban yang digantungkan pada tali sehingga dapat berayun bebas dan periodik akibat gravitasi. Gerak bandul mendekati Gerak Harmonik Sederhana (GHS) bila sudut simpangannya kecil.</p>
@@ -315,7 +297,6 @@
               </div>
             </article>
 
-            <!-- Modul: Pegas -->
             <article id="pegas" class="p-6 bg-white rounded-xl border">
               <div class="flex justify-between items-start">
                 <div>
@@ -331,7 +312,6 @@
                   <iframe src="https://www.youtube.com/embed/nVkj6GrHIn8" title="Video Pegas" style="position:absolute;inset:0;width:100%;height:100%;border:0;" allowfullscreen></iframe>
                 </div>
               </div>
-              <!-- Pegas: concise and tidy section -->
               <div class="mt-6 prose text-slate-700">
                 <h4>Pengenalan Pegas</h4>
                 <p>Pegas adalah benda elastis yang dapat menyimpan energi mekanik dan kembali ke bentuk semula setelah diberi gaya. Sifat elastisnya dijelaskan oleh Hukum Hooke.</p>
@@ -361,7 +341,6 @@
         </div>
       </section>
 
-      <!-- VLAB -->
       <section id="vlab-page" class="page hidden card mb-6">
         <h2 class="text-lg font-bold text-slate-800">PhySphere Lab — Simulasi Interaktif</h2>
         <div class="grid md:grid-cols-3 gap-6 mt-4">
@@ -378,7 +357,6 @@
                 </div>
               </div>
               <div class="mt-4 space-y-3">
-                <!-- Pegas controls -->
                 <div class="pegas-controls">
                   <label class="block text-xs text-slate-500">Massa: <span id="m-val">1.00</span> kg</label>
                   <input id="mass-slider" type="range" min="0.1" max="5" step="0.1" value="1">
@@ -388,7 +366,6 @@
                   <input id="amp-slider" type="range" min="0.01" max="1.5" step="0.01" value="0.5">
                 </div>
 
-                <!-- Bandul controls -->
                 <div class="bandul-controls hidden">
                   <label class="block text-xs text-slate-500">Panjang Tali (L): <span id="L-val">1.00</span> m</label>
                   <input id="length-slider" type="range" min="0.1" max="5" step="0.1" value="1">
@@ -398,7 +375,6 @@
                   <input id="theta-slider" type="range" min="1" max="45" step="1" value="10">
                 </div>
 
-                <!-- kontrol utama: gunakan tombol pusat di area output -->
                 <div class="pt-2 text-xs text-slate-500">Gunakan tombol kontrol di area hasil untuk menjalankan / jeda / lompat / reset simulasi.</div>
               </div>
             </div>
@@ -424,7 +400,6 @@
                 <h4 class="font-semibold">Hasil Simulasi</h4>
                 <p class="text-sm text-slate-600">Hasil akhir simulasi akan muncul di sini setelah simulasi selesai.</p>
                 <div class="mt-3 text-sm space-y-1" id="vlab-result-panel">
-                  <!-- akan diisi oleh JavaScript setelah simulasi selesai -->
                 </div>
               </div>
             </div>
@@ -432,7 +407,6 @@
         </div>
       </section>
 
-      <!-- QUIZ: Full-featured inspired by MyPhysicsLab (multiple parts, timer, nav, review, retry) -->
       <section id="quiz-page" class="page hidden card">
         <div class="flex items-start justify-between">
           <div>
@@ -501,11 +475,9 @@
             </div>
           </div>
 
-          <!-- Right-hand navigation/result panel removed as requested -->
         </div>
       </section>
 
-      <!-- PROFILE simple -->
       <section id="profile-page" class="page hidden card mt-6">
         <h2 class="text-lg font-bold">Profil</h2>
         <p id="profile-hint" class="text-sm text-slate-500">Masuk untuk melihat riwayat skor dan pengaturan akun.</p>
@@ -523,7 +495,6 @@
             <div class="mt-4">
               <button id="btn-logout" class="vlab-button bg-red-500 text-white">Logout</button>
             </div>
-            <!-- Best scores and history placeholders -->
             <div class="mt-6">
               <h4 class="font-semibold">Nilai Tertinggi per Kuis</h4>
               <div id="profile-best-scores" class="mt-2 text-sm text-slate-700">(Belum ada data)</div>
@@ -536,7 +507,6 @@
         </div>
       </section>
 
-      <!-- LOGIN PAGE -->
       <section id="login-page" class="page hidden card mt-6">
         <h2 class="text-lg font-bold">Login</h2>
         <div class="mt-4 p-4 bg-white rounded-xl border">
@@ -552,7 +522,6 @@
         </div>
       </section>
 
-      <!-- REGISTER PAGE -->
       <section id="register-page" class="page hidden card mt-6">
         <h2 class="text-lg font-bold">Register</h2>
         <div class="mt-4 p-4 bg-white rounded-xl border">
@@ -572,14 +541,12 @@
 
     </main>
 
-    <!-- Footer (visual refresh) -->
     <footer class="text-center text-sm text-white/70 py-6">
       <p>Made by <span class="font-semibold text-white">Kelompok 8</span></p>
       <p class="text-xs mt-2">Florecita Natawirya (18223040) &amp; Fhatika Adhalisman Ryanjani (18223062)</p>
     </footer>
   </div>
 
-  <!-- Modal (simple) -->
   <div id="modal" class="fixed inset-0 hidden flex items-center justify-center bg-black bg-opacity-40 z-50">
     <div class="bg-white rounded-xl p-6 w-full max-w-lg">
       <h3 id="modal-title" class="text-lg font-bold">Judul</h3>
