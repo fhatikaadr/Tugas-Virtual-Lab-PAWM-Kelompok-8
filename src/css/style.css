@@ -34,6 +34,127 @@ button{cursor:pointer;transition:transform .12s ease,box-shadow .12s ease,opacit
   background: linear-gradient(135deg, rgba(124,58,237,0.95) 0%, rgba(147,51,234,0.9) 25%, rgba(168,85,247,0.85) 50%, rgba(192,132,252,0.8) 75%, rgba(245,158,11,0.85) 100%);
   min-height:100vh; position:relative; overflow:hidden;
 }
+.auth-card{
+  background: rgba(255,255,255,0.95);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-radius: 20px;
+  padding: 2.5rem;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+  position: relative;
+  z-index: 10;
+  max-width: 500px;
+  width: 90%;
+}
+.auth-label{
+  display: block;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 0.5rem;
+  font-size: 0.95rem;
+}
+.auth-input{
+  width: 100%;
+  padding: 0.75rem;
+  border: 2px solid rgba(168,85,247,0.2);
+  border-radius: 10px;
+  background: white;
+  transition: all 0.3s ease;
+}
+.auth-input:focus{
+  outline: none;
+  border-color: rgba(168,85,247,0.5);
+  box-shadow: 0 0 0 3px rgba(168,85,247,0.1);
+}
+.auth-btn{
+  padding: 0.75rem 1.5rem;
+  border-radius: 10px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  text-decoration: none;
+  display: inline-block;
+  text-align: center;
+}
+.auth-btn-primary{
+  background: linear-gradient(135deg, #7c3aed, #a855f7);
+  color: white;
+  border: none;
+  box-shadow: 0 4px 15px rgba(124,58,237,0.3);
+}
+.auth-btn-primary:hover{
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(124,58,237,0.4);
+}
+.auth-btn-secondary{
+  background: rgba(168,85,247,0.1);
+  color: #7c3aed;
+  border: 2px solid rgba(168,85,247,0.3);
+}
+.auth-btn-secondary:hover{
+  background: rgba(168,85,247,0.2);
+  border-color: rgba(168,85,247,0.5);
+}
+.auth-link{
+  color: #7c3aed;
+  font-weight: 600;
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+.auth-link:hover{
+  color: #a855f7;
+  text-decoration: underline;
+}
+.auth-msg{
+  margin-top: 1rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+.physics-logo{
+  position: relative;
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 1.5rem;
+}
+.physics-logo .physics-nucleus{
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%,-50%);
+  width: 16px;
+  height: 16px;
+  background: linear-gradient(135deg,#7c3aed,#f59e0b);
+  border-radius: 50%;
+  box-shadow: 0 0 20px rgba(124,58,237,0.6);
+}
+.physics-logo .physics-orbit{
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border: 2px solid rgba(124,58,237,0.3);
+  border-radius: 50%;
+  animation: orbitSpin 8s linear infinite;
+}
+.physics-logo .physics-orbit:nth-child(2){
+  animation-duration: 10s;
+  transform: rotate(60deg);
+}
+.physics-logo .physics-orbit:nth-child(3){
+  animation-duration: 12s;
+  transform: rotate(120deg);
+}
+.physics-logo .physics-electron{
+  position: absolute;
+  top: -4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 8px;
+  height: 8px;
+  background: #7c3aed;
+  border-radius: 50%;
+  box-shadow: 0 0 10px rgba(124,58,237,0.8);
+}
 .physics-particle{
   position:absolute; border-radius:50%;
   background:radial-gradient(circle, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0.1) 70%, transparent 100%);
