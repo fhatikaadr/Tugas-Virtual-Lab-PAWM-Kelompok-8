@@ -1,3 +1,4 @@
+/* === BASE STYLE DAN KOMPONEN LAIN === */
 :root{
   --purple-50:#f3e8ff; --purple-100:#e9d5ff; --purple-500:#a855f7; --purple-600:#9333ea; --purple-700:#7c3aed; --purple-800:#6d28d9;
   --yellow-400:#fde047; --yellow-300:#fde68a; --yellow-500:#eab308;
@@ -27,31 +28,20 @@ input[type=range]:focus{outline:none}
 .quiz-completed{box-shadow:0 8px 24px rgba(16,185,129,0.06);border-left:6px solid #10b981}
 .completed-badge{background:#10b981;color:#fff;padding:.25rem .5rem;border-radius:999px;font-weight:700;font-size:.8rem}
 button{cursor:pointer;transition:transform .12s ease,box-shadow .12s ease,opacity .12s}
-.vlab-button{transition:transform .12s ease,box-shadow .12s ease,opacity .12s}
-.vlab-button:focus-visible, button:focus-visible{outline:3px solid rgba(124,58,237,0.18);outline-offset:3px;border-radius:8px}
-.vlab-button:active,.pressed{transform:translateY(1px) scale(0.995);box-shadow:0 6px 16px rgba(0,0,0,0.06) inset}
 
-/* ==== AUTH PAGE STYLE (modern physics theme) ==== */
+/* === AUTH STYLE (login, register, index) === */
 .auth-body{
   background: linear-gradient(135deg, rgba(124,58,237,0.95) 0%, rgba(147,51,234,0.9) 25%, rgba(168,85,247,0.85) 50%, rgba(192,132,252,0.8) 75%, rgba(245,158,11,0.85) 100%);
-  min-height:100vh;
-  position:relative;
-  overflow:hidden;
+  min-height:100vh; position:relative; overflow:hidden;
 }
 .physics-particle{
-  position:absolute;
-  border-radius:50%;
+  position:absolute; border-radius:50%;
   background:radial-gradient(circle, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0.1) 70%, transparent 100%);
-  animation:particleFloat 25s infinite ease-in-out;
-  pointer-events:none;
-  filter:blur(1px);
+  animation:particleFloat 25s infinite ease-in-out; pointer-events:none; filter:blur(1px);
 }
 @keyframes particleFloat{
   0%,100%{transform:translate(0,0) scale(1);opacity:0;}
-  10%{opacity:0.6;}
-  50%{transform:translate(var(--tx),var(--ty)) scale(1.2);opacity:0.8;}
-  90%{opacity:0.6;}
-  100%{transform:translate(calc(var(--tx)*1.5),calc(var(--ty)*1.5)) scale(0.8);opacity:0;}
+  10%{opacity:0.6;} 50%{transform:translate(var(--tx),var(--ty)) scale(1.2);opacity:0.8;} 90%{opacity:0.6;}
 }
 .physics-wave{
   position:absolute;bottom:0;left:0;width:100%;height:150px;
@@ -59,42 +49,57 @@ button{cursor:pointer;transition:transform .12s ease,box-shadow .12s ease,opacit
   background-size:cover;animation:waveMove 20s linear infinite;
 }
 @keyframes waveMove{0%{background-position:0 0;}100%{background-position:1440px 0;}}
-.auth-card{
-  background:rgba(255,255,255,0.95);backdrop-filter:blur(20px);
-  border-radius:24px;padding:2.5rem;
-  box-shadow:0 20px 60px rgba(124,58,237,0.3);
-  border:1px solid rgba(255,255,255,0.5);
-  animation:authSlideUp 0.6s cubic-bezier(0.16,1,0.3,1);
-  position:relative;z-index:10;max-width:440px;margin:0 auto;
+
+/* === PHYSICS LOGO MINI === */
+.physics-logo-small{
+  position:relative;width:36px;height:36px;
 }
-@keyframes authSlideUp{from{opacity:0;transform:translateY(40px) scale(0.95);}to{opacity:1;transform:translateY(0) scale(1);}}
-.physics-logo{width:80px;height:80px;margin:0 auto 1.5rem;position:relative;}
-.physics-nucleus{
+.physics-logo-small .physics-nucleus{
   position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
-  width:20px;height:20px;background:linear-gradient(135deg,#7c3aed,#f59e0b);
-  border-radius:50%;box-shadow:0 0 20px rgba(124,58,237,0.5);z-index:5;
+  width:8px;height:8px;background:linear-gradient(135deg,#7c3aed,#f59e0b);
+  border-radius:50%;box-shadow:0 0 8px rgba(255,255,255,0.7);
 }
-.physics-orbit{position:absolute;top:0;left:0;width:100%;height:100%;border:2px solid rgba(124,58,237,0.3);border-radius:50%;animation:orbitSpin 8s linear infinite;}
-.physics-orbit:nth-child(2){transform:rotate(60deg);animation-duration:10s;}
-.physics-orbit:nth-child(3){transform:rotate(120deg);animation-duration:12s;}
+.physics-logo-small .physics-orbit{
+  position:absolute;top:0;left:0;width:100%;height:100%;
+  border:1px solid rgba(255,255,255,0.3);border-radius:50%;
+  animation:orbitSpin 10s linear infinite;
+}
+.physics-logo-small .physics-electron{
+  position:absolute;top:-3px;left:50%;transform:translateX(-50%);
+  width:5px;height:5px;background:white;border-radius:50%;box-shadow:0 0 6px rgba(255,255,255,0.8);
+}
 @keyframes orbitSpin{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
-.physics-electron{
-  position:absolute;top:-6px;left:50%;transform:translateX(-50%);
-  width:12px;height:12px;background:white;border-radius:50%;box-shadow:0 0 10px rgba(255,255,255,0.8);
+
+/* === GLASS NAVBAR UNTUK PHYSPHERE === */
+.physphere-body {
+  background: linear-gradient(135deg, rgba(124,58,237,0.95), rgba(147,51,234,0.9), rgba(168,85,247,0.85), rgba(192,132,252,0.8), rgba(245,158,11,0.85));
+  min-height: 100vh;
+  overflow-x: hidden;
+  position: relative;
 }
-.auth-btn{
-  padding:1rem 1.5rem;border-radius:16px;font-weight:600;font-size:1rem;
-  transition:all 0.3s cubic-bezier(0.4,0,0.2,1);cursor:pointer;border:none;position:relative;overflow:hidden;
+.glass-navbar {
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-bottom: 1px solid rgba(255,255,255,0.2);
+  position: sticky;
+  top: 0;
+  z-index: 20;
 }
-.auth-btn-primary{
-  background:linear-gradient(135deg,#8B5CF6 0%,#7C3AED 100%);
-  color:white;box-shadow:0 10px 25px rgba(139,92,246,0.35);
+.nav-link {
+  transition: color 0.3s ease, text-shadow 0.3s ease;
 }
-.auth-btn-primary:hover{transform:translateY(-3px);box-shadow:0 15px 35px rgba(139,92,246,0.5);}
-.auth-btn-secondary{
-  background:white;color:#7C3AED;border:2px solid #E9D5FF;box-shadow:0 4px 12px rgba(139,92,246,0.1);
+.nav-link:hover {
+  color: #fde68a;
+  text-shadow: 0 0 10px rgba(255,255,255,0.6);
 }
-.auth-btn-secondary:hover{
-  background:#FAF5FF;border-color:#C084FC;transform:translateY(-2px);
-  box-shadow:0 8px 20px rgba(139,92,246,0.15);
+.nav-btn {
+  background: rgba(255,255,255,0.2);
+  border-radius: 12px;
+  padding: 0.4rem 0.9rem;
+  transition: all 0.25s ease;
+}
+.nav-btn:hover {
+  background: rgba(255,255,255,0.3);
+  transform: translateY(-2px);
 }

@@ -49,7 +49,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/src/css/style.css">
 </head>
-<body class="min-h-screen">
+<body class="physphere-body text-slate-800 min-h-screen">
   <!-- Warning Banner: Not Logged In -->
   <div id="not-logged-in-warning" class="hidden bg-yellow-500 text-white px-6 py-3 text-center font-semibold">
     ⚠️ Anda belum login! Progress materi tidak akan tersimpan. 
@@ -57,23 +57,24 @@
   </div>
   
   <div class="max-w-7xl mx-auto p-6">
-    <header class="flex items-center justify-between mb-6">
+    <!-- Glass-style navbar (visual only, preserves JS hooks via .tab-button/data-page) -->
+    <nav class="glass-navbar flex items-center justify-between mb-6 p-4 rounded-xl shadow-lg bg-white/10 backdrop-blur-md">
       <div class="flex items-center gap-4">
-        <!-- Use relative path to img folder; space in filename is URL-encoded -->
-        <img src="/src/img/logo%20PhySphere.png" alt="PhySphere Logo" class="h-20 w-auto object-contain">
+        <img src="/src/img/logo%20PhySphere.png" alt="PhySphere Logo" class="h-14 w-auto object-contain">
         <div>
-          <h1 class="text-2xl font-bold text-purple-800">Gerak Harmonik Sederhana</h1>
-          <p class="text-sm text-purple-500">Simulasi, kuis, dan materi fisika.</p>
+          <h1 class="text-xl font-bold text-white">PhySphere — Gerak Harmonik</h1>
+          <p class="text-xs text-white/80">Simulasi • Kuis • Materi</p>
         </div>
       </div>
-      <nav class="flex gap-3">
-        <button class="tab-button active py-2 px-3 text-purple-700" data-page="beranda">Beranda</button>
-        <button class="tab-button py-2 px-3 text-purple-700" data-page="materi">Materi</button>
-        <button class="tab-button py-2 px-3 text-purple-700" data-page="vlab">PhySphere Lab</button>
-        <button class="tab-button py-2 px-3 text-purple-700" data-page="quiz">Kuis</button>
-        <button class="tab-button py-2 px-3 text-purple-700" data-page="profile">Profil</button>
-      </nav>
-    </header>
+
+      <div class="flex gap-2 items-center">
+        <button class="tab-button active px-3 py-2 text-sm font-medium text-white" data-page="beranda">Beranda</button>
+        <button class="tab-button px-3 py-2 text-sm font-medium text-white" data-page="materi">Materi</button>
+        <button class="tab-button px-3 py-2 text-sm font-medium text-white" data-page="vlab">Simulasi</button>
+        <button class="tab-button px-3 py-2 text-sm font-medium text-white" data-page="quiz">Kuis</button>
+        <button class="tab-button px-3 py-2 text-sm font-medium text-white" data-page="profile">Profil</button>
+      </div>
+    </nav>
 
     <main>
       <!-- BERANDA (updated hero + feature cards) -->
@@ -571,14 +572,10 @@
 
     </main>
 
-    <!-- Footer -->
-    <footer class="mt-12 pt-6 border-t border-gray-200 text-center">
-      <p class="text-sm text-slate-600">
-        Made by <span class="font-semibold text-purple-700">Kelompok 8</span>
-      </p>
-      <p class="text-xs text-slate-500 mt-2">
-        Florecita Natawirya (18223040) & Fhatika Adhalisman Ryanjani (18223062)
-      </p>
+    <!-- Footer (visual refresh) -->
+    <footer class="text-center text-sm text-white/70 py-6">
+      <p>Made by <span class="font-semibold text-white">Kelompok 8</span></p>
+      <p class="text-xs mt-2">Florecita Natawirya (18223040) &amp; Fhatika Adhalisman Ryanjani (18223062)</p>
     </footer>
   </div>
 
